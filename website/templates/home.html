@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Emergency Vehicle Notification System</title>
+    <meta name="viewport" content="initial-scale=1.0">
+    <meta charset="utf-8">
+    <style>
+      body {
+        background-color: #ffffff;
+          font-family: 'Montserrat', sans-serif;
+          margin: 0;
+          padding: 0;
+      }
+      h1 {
+          color: #f34648;
+          text-align: center;
+          margin-top: 30px;
+      }
+      .description {
+          text-align: center;
+          margin-bottom: 30px;
+      }
+      #googleMap {
+          width: auto;
+          height: 800px;
+          border: 5px solid #f34648;
+          border-radius: 10px;
+      }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+
+</head>
+<body>
+    <h1>Emergency Vehicle Notification System</h1>
+    <p class="description">This system helps to track the location of emergency vehicles in real-time and notify nearby cars and traffic lights to help drivers quickly and safely move out of the way of the emergency vehicle.</p>
+    <div id="googleMap"></div>
+
+    <script>
+        var map;
+        var ambulance;
+        var cars;
+        var hospital;
+        var traffic_lights;
+
+        function myMap() {
+            var mapProp= {
+                center:new google.maps.LatLng(40.634723, -8.655046),
+                zoom:17,
+                mapTypeId: google.maps.MapTypeId.ROADMAP,
+                styles: [{featureType: "poi", stylers: [{visibility: "off"}]}]
+            };
+            map = new google.maps.Map(document.getElementById("googleMap"), mapProp);
+            
+            var iconBase = 'https://maps.google.com/mapfiles/kml/shapes/';
+            var ambulanceIcon = {
+            url: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAlCAYAAAAjt+tHAAAACXBIWXMAAAsTAAALEwEAmpwYAAABZklEQVRYhe2VMW7CQBRE5wNFkLgF1CYnQNAYc4Mo9yBpky6E47hAVFg5QTAHAclENJBJERs5y27YNUFKsU+ykNffM7Nffw3g8Xg8Ho/H4wDJuPz7F9RcjAEgC6NYt351sjCKSTI3ZjnIVaFCFkbqki0Lnb6cMwcw2A5H2pdtqQcBmtMJROTEr2FjfvP6gka3CwDYDkfa+tZ8Znx+SFNjOO0QFu1SzAdGlQswdaC/Gz9+F+TmIpLkM/iDYufqvalTKsZjWG6biCRWahUwzkAZ6raeU+zUdefWAVwFXbHqgA1Vg1oFUAft3FF0CWUcwnoQHEUP6Qrb4Qgfd/c4pKsTo3N1hZZLgKQ5naDWaW8AYDd+AABwvcbu6fkoWr5MdbVOe9OcTgAg0RkZP8UkFyIyIEm1la357BPAG4DbfOkdQF9XJyL1Qsvk9SskuV+mzMKIWRhxv0ypO5a2dVUC9DT/bL2qdZ5/xxcwOD4hIBpieQAAAABJRU5ErkJggg==",
+            scaledSize: new google.maps.Size(50, 50),
+            };
+
+            var carIcon = {
+            url: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAlCAYAAAAjt+tHAAAACXBIWXMAAAsTAAALEwEAmpwYAAABpklEQVRYhe2UP0gCYRjGn7MgkAgLdG5qiaCpLYcKijZJhzabhGapMDgokAPBwcHAKeQgMjsOWiS8RZegsaEmISIoLkn6T/7pbVBDr0/voCSC7wffcO/3Pu/zfHzHB3A4HA6Hw+Fw/htEFCdz4r0yjxIReSL+ArxOYi1PxF9ohIj+tvkGEVEgESzB6yTtLP+1Wr/hdVIgESw1QoQaWlunuR03jOYApNBeWE9kk46jdfkSAO6fS6fGXk1UkMgmHZIaqxe8zq4e3zaJyG68ZwCSpMYgqTGXJiqwD9hHAWBkcHjKJHu4mrqtAag1RmWMDQIjQO7l/dW9Jm9h53jXZL51FiZnkNncPxcEYby13s/odS+Gl5G/OKk32PpQ/aj9OMBV8RoAxox15v00zTVRQSV1A0rr0ETFspkmKqC03qbTH4oA48Adf5CmUPC5IPhcbTUzc5bu8e2J2c+6AgDA7MQ0BJ8Lq/MrAIC57SVQWjcN0ElXrlYAoGwtwOGdAIBaSw77EABYCsHSsWZ2hYhIzh2ozRdOzh2oRFTqlY41yM1449290nE4f8YnESZI4rUl3GEAAAAASUVORK5CYII=",
+            scaledSize: new google.maps.Size(50, 50),
+            };
+
+            var hospitalIcon = {
+            url: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAlCAYAAAAjt+tHAAAACXBIWXMAAAsTAAALEwEAmpwYAAACP0lEQVRYhe2XO4vbQBSFPwtjhDBLcJHSqF0vcRxShbTyz3Lln6U6uFpWMXjdGpcpTAhGDMJIKTTXmRV6jGwJEsiFYfQYzTlz7hlJd5BlGQDL5XIIOMBI90O6jQuQAgmQhmF4ARhkWSbgI8DVbaQJOB2Bp5pAAijdkjAML4MgCATcAx5079KPAgqIgV+6T2SVrgZ/v4q2m46B38R6Mf+iD1PgYkrvraLtxvd9PM/Ddd1OgZVSxHHMKtpu1ov5B3QaTOO5QC/gQHFO8ZkjbpfWC3gJiSumGK3R7cfjsRXYdDptGuIIE+uY7XdW414fn6znvGufvz4+tQLrnEAXcdPLprhqObdNUSOBtoaznaPMmJUK1K1G7lWtvOzZKq/8mx6QuCXnxfi7FSjmbbbfNe77sjF1StUSKHvQRvY2qfmvQGsFbKJXBWxA2ihw1zac7Xd3vwsqFbD5zJpjbv0sC4HUvGjxN9NFpJCn4GI0lFK9IRpzXzEd/pRLCiCO415IyG+5nGrMdBAEwQgYA++oKUx832cymViBnU4nDodD6T1dmPwAfgLnIbkCirxcQhcNZmnmAKyi7TegkYSArxfzr/qS+KtYmikgtSlOr//wq2j7XKeEAf6Zt96qLk4bynPpzfLtpYyEAf5Jr1LybBIoL8/rQhNzyX0y1iS+myQM8I8a/KybEqCqaCRQQWIsSgDmys+0ALcmUELiQZN4BiTnZ3JzWYO3IlAg4ek20rcScunjNuCtCRgkxJSyVWWLJW3AAX4D5vZElpqm5icAAAAASUVORK5CYII=",
+            scaledSize: new google.maps.Size(50, 50),
+            };
+
+            var traffic_lightsIcon = {
+            url: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAlCAYAAAAjt+tHAAAACXBIWXMAAAsTAAALEwEAmpwYAAAEfUlEQVRYhbWX62scVRjGf7s7O3vJJtlNm1s36cUi1g+1Vj8VpdG4UYqtFEEq9EOK1yj+CVIQ8T9QiRIK1RahIlgslrKjJr1YUErRiq2N0nbJpUlja9tkdjK7O+OHmTOZTbK7Z2V94TBn3znnfZ7znPfsnDdg2zYAAwMDChAEVPep0FgrAhZgAlY2my0CBGzbFuAqEHWb6hIINgjccgmYgOE2M5vNFgOZTEaAx4EW9xnl/1HAAHTgnvs0xSqjLniHpvWdbzBwmWUyYzvcrgUU/dLHNa3vfEdqI5FwHDUcbSiwWTBYLOhoGuczmbGtuNvgT7woIA1uWRYT0xNEI1GMRYNYNEb7mvaK45fFFHkWFNkuWk3w3GSO3GSOiekJWpMq94wDfHFsgLyR995JkPAwRaLVzHZ/YNMe8vp7dp3km5O7MO3NDkhg2Bub7koTCoUqhQwKJtJm2kMY+SIAz/QdJ5eb55S2h7ffHOPokXHuLryGbr6BEg6S7jxcDbycRT0WjTmcz5yeZvzafh7Y3MLHn/RhWc4fmhJ2Qt6azVMqlRpLQA0Me/3AspnJpOr1myKfAjRWgfXp9WUkbAvOnpkGwCrZzNzMA9DaNELBtOhd1ysVVzoHJqcniagRFs1Fz9e/8/iKcXm9iBJSmJqZorujm2Cw+hqlFShZJS7/+RLa6Atl/tGze3loS9L7/evv+7jy1z6isUBNcKhDgVAwRE9vgp7ehOcTx/HS5Ze9rdnycAoAfaFEqtlqrAL+JKxmQ6+PYtu2lAJ1J2Fr04jn+y47AThJKOyVwe85NHKFtmSbVFzpLdDzOp1rO5mZm/F8u549sWLckc+ukmhKSK0e6lBg7vYcO3bG2fbomjL/KW03GzY2e7/3vriJ/oG1zN2eQ9y2qpm0AqnWFMe+eq7MJ5Jw/Np+Lz/EmGTTIQKBQM240grcuXuHBzcdrfg+pCyB/Xbpb3TdlFJAmsC6znXcuH6fvXtOer4P3r8AwPz9AqWiA/bjuZs89siXhJWwlALSW6AoCu1t7Xx74gbgyK8Ghnnv4M8ATM0OAvDUk1+jqipd7V1ycWUJAMRiMQDSnYeZnBnEtIfQFwrEm8IAvHrgBwBpcPgPn+N0V5pbs3neees0gAe+fesxPj/8B20pufMvTChgyU4IhUK0JFp4uj9d5n9+9wZu3VSIRqQvsxY4ChR9DbNg1JxZKBY4+O5PZb6PPrxU9qVczXyxPUyFpXLJAFgs6ED1y2myJcn41ekV34ae7uYKM5au5a4ZLqYVyGQyKpAAklQpTDpSG2mOy+3vff02s3eur/rOLUxmgX+AeaGAgVMu4RYN/tIsCKBpnANqkhDgmczYE65L5Nfy0swALJni1LvDa1rfhWpK+MAfpzy3KhenNcpz8fSXbxdXI+ED3+6uUuyzn8Dq5Xk1c4lFcfIk4ZL4xU/CB77NBZ93myGAKllNAhVIJIQSgH/l89QBLk1gFRItLokLgNjzeZzkkgavi8AyEnG3iWrExJFerwe8bgI+EiIpxVEVR8ysBxzgX2ek8TNIgO6XAAAAAElFTkSuQmCC",
+            scaledSize: new google.maps.Size(50, 50),
+            };
+
+            hospital = new google.maps.Marker({
+                position: new google.maps.LatLng(40.634723, -8.655046),
+                map: map,
+                icon: hospitalIcon,
+            });
+
+            ambulance = new google.maps.Marker({
+                position: new google.maps.LatLng(40.635240,-8.655350),
+                map: map,
+                icon: ambulanceIcon,
+            });
+
+            cars = new google.maps.Marker({
+                position: new google.maps.LatLng(40.635791,-8.655731),
+                map: map,
+                icon: carIcon,
+            }); 
+
+            traffic_lights = new google.maps.Marker({
+                position: new google.maps.LatLng(40.637076, -8.653228),
+                map: map,
+                icon: traffic_lightsIcon,
+            });
+
+            setInterval(function() {
+                ambulance.setPosition(new google.maps.LatLng(40.635240 + Math.random() * 0.0001, -8.655350 + Math.random() * 0.0001));
+                cars.setPosition(new google.maps.LatLng(40.635791 + Math.random() * 0.0001, -8.655731 + Math.random() * 0.0001));
+            }, 1000);
+        }
+    </script>
+
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDcLG_2KgktdQJXLaeyQZHJzmvcSjNwoPM&callback=myMap"></script>
+
+</body>
+</html>
