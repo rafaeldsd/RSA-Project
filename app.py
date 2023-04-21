@@ -5,7 +5,6 @@ from flask import Flask, render_template
 
 app = Flask(__name__)
 
-# Google Maps API key (replace with your own)
 #GOOGLE_MAPS_API_KEY ="AIzaSyDcLG_2KgktdQJXLaeyQZHJzmvcSjNwoPM"
 
 @app.route("/")
