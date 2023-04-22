@@ -29,6 +29,7 @@
             <li><img src="/static/images/fire.png" alt="Firefighters" style="width:auto;height:auto;">Firefighters</li>
             <li><img src="/static/images/hospital-building.png" alt="Hospital" style="width:auto;height:auto;">Hospital</li>
             <li><img src="/static/images/trafficlight.png" alt="Traffic Lights" style="width:auto;height:auto;">Traffic Lights</li>
+            <li><img src="/static/images/rsu.png" alt="RSU" style="width: 30px; height: 30px;">RSU</li>
           </ul>
         </div>
     </div>    
@@ -79,6 +80,11 @@
             url: "/static/images/trafficlight.png",
             scaledSize: new google.maps.Size(40, 40),
             };
+            
+            var rsuIcon = {
+            url: "/static/images/rsu.png",
+            scaledSize: new google.maps.Size(30, 30),
+            };
 
             cars = new google.maps.Marker({
                 position: new google.maps.LatLng(40.635791,-8.655731),
@@ -114,8 +120,19 @@
                 position: new google.maps.LatLng(40.637076, -8.653228),
                 map: map,
                 icon: traffic_lightsIcon,
-            });
+            });                
 
+            // get the rsu variable from app.py
+            var rsu = {{ rsu|tojson }};
+            
+            // loop through the list and add markers
+            for (var i = 0; i < rsu.length; i++) {
+                var rsuMarker = new google.maps.Marker({
+                    position: new google.maps.LatLng(rsu[i][1], rsu[i][2]),
+                    map: map,
+                    icon: rsuIcon,
+                });
+            }
 
             // Set the last update time initially
             var now = new Date();
@@ -133,7 +150,7 @@
             }, 2000);
         }
     </script>
-
+   
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDcLG_2KgktdQJXLaeyQZHJzmvcSjNwoPM&callback=myMap"></script>
 
 </body>

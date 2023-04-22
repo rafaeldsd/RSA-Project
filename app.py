@@ -13,7 +13,6 @@ def home():
     # Connect to database
     conn_rsu = sqlite3.connect('rsu.db')
     rsu =  conn_rsu.execute("SELECT * FROM rsu").fetchall()
-    print(rsu)
 
     if request.is_json:
         conn_obu = sqlite3.connect('obu.db')
