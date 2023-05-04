@@ -23,3 +23,4 @@ def on_message(client, userdata, msg):
         emergency[ int(client._client_id) - 1 ] = True
     else:
         emergency[ int(client._client_id) - 1 ] = False
+    

@@ -46,7 +46,7 @@
         function myMap() {
             var mapProp= {
                 center:new google.maps.LatLng(40.634723, -8.655046),
-                zoom:17,
+                zoom:16,
                 styles: [{featureType: "poi", stylers: [{visibility: "off"}]}]
             };
             map = new google.maps.Map(document.getElementById("googleMap"), mapProp);
@@ -87,25 +87,25 @@
             };
 
             cars = new google.maps.Marker({
-                position: new google.maps.LatLng(40.635791,-8.655731),
+                position: new google.maps.LatLng(40.64091,-8.659),
                 map: map,
                 icon: carIcon,
             }); 
 
             ambulance = new google.maps.Marker({
-                position: new google.maps.LatLng(40.635240,-8.655350),
+                position: new google.maps.LatLng(40.63524,-8.65542),
                 map: map,
                 icon: ambulanceIcon,
             });
 
             police = new google.maps.Marker({
-                position: new google.maps.LatLng(40.634195, -8.657235),
+                position: new google.maps.LatLng(40.6305, -8.65402),
                 map: map,
                 icon: policeIcon,
             });
 
             firefighters = new google.maps.Marker({
-                position: new google.maps.LatLng(40.636723, -8.659257),
+                position: new google.maps.LatLng(40.6406, -8.64841),
                 map: map,
                 icon: firefightersIcon,
             });
@@ -134,20 +134,65 @@
                 });
             }
 
+            var index = 0;
+            var ambulance_coords = [];
+            var car_coords = [];
+            var police_coords = [];
+            var firefighters_coords = [];
+
+            // Fetch the coordinates from the JSON file
+            fetch('static/ambulance_coords.json')
+            .then(response => response.json())
+            .then(data => {
+                ambulance_coords = data;
+            })
+            .catch(error => console.error(error));
+            
+            fetch('static/car_coords.json')
+            .then(response => response.json())
+            .then(data => {
+                car_coords = data;
+            })
+            .catch(error => console.error(error));
+
+            fetch('static/police_coords.json')
+            .then(response => response.json())
+            .then(data => {
+                police_coords = data;
+            })
+            .catch(error => console.error(error));
+
+            fetch('static/firefighters_coords.json')
+            .then(response => response.json())
+            .then(data => {
+                firefighters_coords = data;
+            })
+            .catch(error => console.error(error));
+
             // Set the last update time initially
             var now = new Date();
             document.getElementById("lastUpdate").innerHTML = "Last update: " + now.toLocaleString();
 
             setInterval(function() {
-                ambulance.setPosition(new google.maps.LatLng(40.635240 + Math.random() * 0.0001, -8.655350 + Math.random() * 0.0001));
-                cars.setPosition(new google.maps.LatLng(40.635791 + Math.random() * 0.0001, -8.655731 + Math.random() * 0.0001));
-                police.setPosition(new google.maps.LatLng(40.634195 + Math.random() * 0.0001, -8.657235 + Math.random() * 0.0001));
-                firefighters.setPosition(new google.maps.LatLng(40.636723 + Math.random() * 0.0001, -8.659257 + Math.random() * 0.0001));
+                // Check if there are new coordinates to use
+                if (index < ambulance_coords.length ){
+                    ambulance.setPosition(new google.maps.LatLng(ambulance_coords[index].latitude, ambulance_coords[index].longitude));
+                }
+                if (index < car_coords.length ){
+                    cars.setPosition(new google.maps.LatLng(car_coords[index].latitude, car_coords[index].longitude));
+                }
+                if (index < police_coords.length ){
+                    police.setPosition(new google.maps.LatLng(police_coords[index].latitude, police_coords[index].longitude));
+                }
+                if (index < firefighters_coords.length ){
+                    firefighters.setPosition(new google.maps.LatLng(firefighters_coords[index].latitude, firefighters_coords[index].longitude));
+                }
+                index++;
                 
                 // Update the last update time
                 var now = new Date();
                 document.getElementById("lastUpdate").innerHTML = "Last update: " + now.toLocaleString();
-            }, 2000);
+            }, 1000);
         }
     </script>
    
