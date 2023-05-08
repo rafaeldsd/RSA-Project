@@ -45,16 +45,16 @@ def sendDenm(rsu,id):
 
 def rsu_process(broker):
     # Connect to MQTT broker
-    client = mqtt.Client(broker)
-    client.on_connect=on_connect
-    client.on_disconnect=on_disconnect
-    client.on_message=on_message
+    rsu = mqtt.Client(broker)
+    rsu.on_connect = on_connect
+    rsu.on_disconnect = on_disconnect
+    rsu.on_message = on_message
 
-    client.loop_start()
-    client.connect(broker)
+    rsu.loop_start()
+    rsu.connect(broker) 
 
     while(True):
-        client.subscribe("vanetza/out/cam")
+        rsu.subscribe('vanetza/out/cam')
         time.sleep(1)
     print("RSU"+ str(client._client_id) +": Process finished")
     client.loop_stop()
@@ -65,16 +65,19 @@ def rsu_sim(broker_rsus):
 
     proc_list = []
 
+    print("Starting RSU processes")
     for broker in broker_rsus:
-        proc = mp.Process(target=rsu_process, args=(broker[0],))
-        proc_list.append(proc)
-        proc.start()
-
-    for proc in proc_list:
-        proc.join()
+        rsuProc = mp.Process(target=rsu_process, args=[broker[0]])
+        rsuProc.start()
+        proc_list.append(rsuProc)
+        
+    print("RSU processes started")
+    for rsuProc in proc_list:
+        rsuProc.join()
+    print("RSU processes finished")
 
 if __name__ == "__main__":
-    rsu_sim([("192.168.98.15", 1), ("192.168.98.16",2), ("192.168.98.17",3), ("192.168.98.18",4), ("192.168.98.19",5)])
+    rsu_sim([("192.168.98.70", 1), ("192.168.98.71",2)])
 
     
 
