@@ -1,7 +1,6 @@
 import paho.mqtt.client as mqtt
-import time, sys, os, json, random, multiprocessing as mp
+import time, json, multiprocessing as mp
 from datetime import datetime
-import sqlite3
 
 def on_connect(client, userdata, flags, rc):
     if rc==0:
@@ -67,17 +66,19 @@ def rsu_sim(broker_rsus):
 
     print("Starting RSU processes")
     for broker in broker_rsus:
-        rsuProc = mp.Process(target=rsu_process, args=[broker[0]])
+        print("Starting RSU process for broker: " + broker[0])
+        rsuProc = mp.Process(target=rsu_process, args=(broker[0],))
         rsuProc.start()
         proc_list.append(rsuProc)
         
     print("RSU processes started")
     for rsuProc in proc_list:
         rsuProc.join()
+        print("RSU"+ str(rsuProc._name) +": Process joined")
     print("RSU processes finished")
 
 if __name__ == "__main__":
-    rsu_sim([("192.168.98.70", 1), ("192.168.98.71",2)])
+    rsu_sim([("192.168.98.70", 1), ("192.168.98.80",2)])
 
     
 

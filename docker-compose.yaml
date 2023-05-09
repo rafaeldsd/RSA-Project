@@ -35,7 +35,7 @@ services:
             - SUPPORT_MAC_BLOCKING=true
         networks:
             vanetzalan0:
-                ipv4_address: 192.168.98.71
+                ipv4_address: 192.168.98.80
         sysctls:
             kernel.msgmax:  65536
             kernel.msgmnb:  65536
@@ -75,7 +75,7 @@ services:
             - SUPPORT_MAC_BLOCKING=true
         networks:
             vanetzalan0:
-                ipv4_address: 192.168.98.31
+                ipv4_address: 192.168.98.40
         sysctls:
             kernel.msgmax:  65536
             kernel.msgmnb:  65536
@@ -95,7 +95,7 @@ services:
             - SUPPORT_MAC_BLOCKING=true
         networks:
             vanetzalan0:
-                ipv4_address: 192.168.98.32
+                ipv4_address: 192.168.98.50
         sysctls:
             kernel.msgmax:  65536
             kernel.msgmnb:  65536
@@ -115,7 +115,7 @@ services:
             - SUPPORT_MAC_BLOCKING=true
         networks:
             vanetzalan0:
-                ipv4_address: 192.168.98.33
+                ipv4_address: 192.168.98.60
         sysctls:
             kernel.msgmax:  65536
             kernel.msgmnb:  65536
