@@ -1,16 +1,16 @@
 import paho.mqtt.client as mqtt
-import time, sys, os, json, random, multiprocessing as mp
+import sys, json, multiprocessing as mp
 from datetime import datetime
 import sqlite3
 
 def on_connect(client, userdata, flags, rc):
     if rc==0:
-        print("OBU"+ str(client._client_id) +": Connected OK")
+        print("OBU "+ str(client._client_id.decode("utf-8")) +": Connected OK")
     else:
-        print("OBU"+ str(client._client_id) +": Bad connection Returned code=",rc)
+        print("OBU "+ str(client._client_id.decode("utf-8")) +": Bad connection Returned code=",rc)
 
 def on_disconnect(client, userdata, flags, rc=0):
-    print("OBU"+ str(client._client_id) +": Disconnected result code "+str(rc))
+    print("OBU "+ str(client._client_id.decode("utf-8")) +": Disconnected result code "+str(rc))
 
 def on_message(client, userdata, msg):  
     topic=msg.topic
@@ -31,26 +31,40 @@ def on_message(client, userdata, msg):
 
 def obu_process(broker):
     # Connect to MQTT broker
-    obu = mqtt.Client(broker)
-    obu.on_connect = on_connect
-    obu.on_disconnect = on_disconnect
-    obu.on_message = on_message
+    client = mqtt.Client(broker)
+    client.on_connect = on_connect
+    client.on_disconnect = on_disconnect
+    client.on_message = on_message
 
-    obu.loop_start()
-    obu.connect(broker)
+    client.loop_start()
+    client.connect(broker)
 
     # ...
 
-def obu_sim(broker_obus):
-    process_obus = []
+    client.loop_stop()
+    client.disconnect()
 
-    for broker in broker_obus:
+def obu_sim(brokers):
+    processes = []
+
+    print("Starting OBU processes")
+    for broker in brokers:
+        print("Starting OBU process for broker: " + broker[0])
         p = mp.Process(target=obu_process, args=[broker[0]])
         p.start()
-        process_obus.append(p)
-    
-    for p in process_obus:
+        processes.append(p)
+        
+    for p in processes:
         p.join()
 
+    print("OBU processes finished")
+
 if __name__ == '__main__':
-    obu_sim([("192.168.98.30",1), ("192.168.98.31",2), ("192.168.98.32",3), ("192.168.98.33",4)])
+    try:
+        obu_sim([("192.168.98.30",1), ("192.168.98.40",2), ("192.168.98.50",3), ("192.168.98.60",4)])
+    except KeyboardInterrupt:
+        print("Received interrupt signal. Stopping OBU processes...")
+        for p in mp.active_children():
+            p.terminate()
+        print("OBU processes stopped")
+        sys.exit(0)
