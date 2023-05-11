@@ -7,11 +7,15 @@ def obu_db_create():
     c = conn.cursor()
     c.execute('''DROP TABLE if exists obu''')
     c.execute('''CREATE TABLE obu
-                 (type text, latitude real, longitude real, ip text primary key)''')
+                 (id integer, latitude real, longitude real, ip text primary key, type text, emergency boolean)''')
     
-    # c.execute('''INSERT INTO obu VALUES (0,null,null,"192.168.98.30")''')
-    # c.execute('''INSERT INTO obu VALUES (1,null,null,"192.168.98.31")''')
-    # c.execute('''INSERT INTO obu VALUES (2,null,null,"192.168.98.32")''')
+    c.execute('''INSERT INTO obu VALUES (3,null,null,"192.168.98.30", "AMBULANCE", 1)''')
+    c.execute('''INSERT INTO obu VALUES (4,null,null,"192.168.98.40", "FIRE", 0)''')
+    c.execute('''INSERT INTO obu VALUES (5,null,null,"192.168.98.50", "POLICE", 0)''')
+    c.execute('''INSERT INTO obu VALUES (6,null,null,"192.168.98.60", "CAR", 0)''')
 
     conn.commit()
     conn.close()
+
+if __name__ == "__main__":
+    obu_db_create()

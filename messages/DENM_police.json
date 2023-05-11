@@ -7,8 +7,8 @@
         "detectionTime": 1626453837.658,
         "referenceTime": 1626453837.658,
         "eventPosition": {
-            "latitude": (position),
-            "longitude": (position),
+            "latitude": 0,
+            "longitude": 0,
             "positionConfidenceEllipse": {
                 "semiMajorConfidence": 0,
                 "semiMinorConfidence": 0,
