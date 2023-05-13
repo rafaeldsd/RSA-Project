@@ -8,7 +8,7 @@ def on_connect(client, userdata, flags, rc):
         print("RSU "+ str(client._client_id.decode("utf-8")) +": Connected OK")
     else:
         print("RSU "+ str(client._client_id.decode("utf-8")) +": Bad connection Returned code=",rc)
-
+    
 def on_disconnect(client, userdata, flags, rc=0):
     print("RSU "+ str(client._client_id.decode("utf-8")) +": Disconnected result code "+str(rc))
 
@@ -88,14 +88,18 @@ def is_within_50m(lon1, lat1, lon2, lat2):
 
 def rsu_process(broker):
     # Connect to MQTT broker
-    client = mqtt.Client(broker)
-    client.on_connect = on_connect
+
+    client = mqtt.Client(broker) #create new instance
+    client.on_connect = on_connect #bind call back function
     client.on_disconnect = on_disconnect
     client.on_message = on_message
-
+    port="1883"
     client.loop_start()
-    client.connect(broker) 
-
+    try:
+        client.connect(broker,port) #connect to broker
+    except: 
+        print("connection failed")
+    exit(1)
     
     while(True):
         client.subscribe('vanetza/out/cam')
