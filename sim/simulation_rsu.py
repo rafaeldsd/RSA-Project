@@ -93,13 +93,13 @@ def rsu_process(broker):
     client.on_connect = on_connect #bind call back function
     client.on_disconnect = on_disconnect
     client.on_message = on_message
-    port="1883"
+    
     client.loop_start()
     try:
-        client.connect(broker,port) #connect to broker
+        client.connect(broker) #connect to broker
     except: 
         print("connection failed")
-    exit(1)
+        exit(1)
     
     while(True):
         client.subscribe('vanetza/out/cam')
