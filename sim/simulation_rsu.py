@@ -98,8 +98,8 @@ def rsu_process(broker):
     try:
         client.connect(broker) #connect to broker
     except: 
-        print("connection failed")
-        exit(1)
+        print("Could not connect to broker " + broker)
+        sys.exit(1)
     
     while(True):
         client.subscribe('vanetza/out/cam')

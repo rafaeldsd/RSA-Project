@@ -1,7 +1,7 @@
 import paho.mqtt.client as mqtt
 import sys, json, multiprocessing as mp
 from datetime import datetime
-import sqlite3, math
+import sqlite3, math, time
 
 def on_connect(client, userdata, flags, rc):
     if rc==0:
@@ -26,8 +26,8 @@ def on_message(client, userdata, msg):
     conn.close()
 
     # check what type of obu is
-    # if it is a car and an emergency veicle without an emergency
-    if obu[4] == "CAR" or (obu[4] in ["AMBULANCE", "FIRE", "POLICE"] and obu[5] == 0):
+    # if it is a car and an emergency vehicle without an emergency
+    if obu[4] == "CAR" or (obu[4] in ["AMBULANCE", "FIRE", "POLICE"] and obu[5] == False):
         # check if the car is within 50 meters of the OBU and if it is moving
         if is_within(obu[2], obu[1], denm['management']['eventPosition']['latitude'], denm['management']['eventPosition']['longitude'],50) and denm['management']['situation']['informationQuality'] == 7:
             print("OBU " + str(client._client_id.decode("utf-8")) + " detected movement in the area with id: " + str(denm['management']['actionID']['originatingStationID']))
@@ -48,12 +48,25 @@ def on_message(client, userdata, msg):
                     print("MOVE IMMEDIATELY!")
             else:
                 print("OBU " + str(client._client_id.decode("utf-8")) + " detected a DENM message with cause code: " + str(denm['management']['situation']['eventType']['causeCode']) + " and subcause code: " + str(denm['management']['situation']['eventType']['subCauseCode']))
-    if obu[4] in ["AMBULANCE", "FIRE", "POLICE"] and obu[5] == 1:
-        sendDenm(client, obu)
         
+def sendCam(client,obu):
+    if obu[4] == "AMBULANCE" or obu[4] == "FIRE" or obu[4] == "POLICE":
+        # f = open("../messages/CAM_emergency.json", "r")
+        f = open("../messages/CAM_car.json", "r")
+    else:
+        f = open("../messages/CAM_car.json", "r")
+    cam = json.load(f)
+    cam['stationID'] = obu[0]
+    cam['latitude'] = obu[1]
+    cam['longitude'] = obu[2]
 
-
-def sendDenm(client, obu):
+    # if obu[5] == True:
+        # cam['specialVehicle']['emergencyContainer']["lightBarSireneInUse"]= "11"
+    print("OBU " + str(obu[0]) + ": Sending CAM message")
+    client.publish("vanetza/in/cam", json.dumps(cam))
+    f.close()  
+        
+def sendDenm(client,obu):
     # Check what type of vehicle is
     if obu[4] == "AMBULANCE":
         f = open("../messages/DENM_ambulance.json", "r")
@@ -62,7 +75,7 @@ def sendDenm(client, obu):
     elif obu[4] == "POLICE":
         f = open("../messages/DENM_police.json", "r")
     else:
-        print("OBU " + str(client._client_id.decode("utf-8")) + " has an invalid type")
+        print("OBU " + str(obu[0]) + " has a invalid type")
         return
     denm = json.load(f)
     denm['management']['actionID']['sequenceNumber'] += 1
@@ -71,7 +84,8 @@ def sendDenm(client, obu):
     denm['management']['eventPosition']['longitude'] = obu[2]
     denm['management']['detectionTime'] = datetime.timestamp(datetime.now())
     denm['management']['referenceTime'] = datetime.timestamp(datetime.now())
-    obu.publish("vanetza/in/denm", json.dumps(denm))
+    print("OBU " + str(obu[0]) + ": Sending DENM message")
+    client.publish("vanetza/in/denm", json.dumps(denm))
     f.close()
 
 def haversine(lon1, lat1, lon2, lat2):
@@ -97,7 +111,7 @@ def is_within(lon1, lat1, lon2, lat2, dist):
     distance = haversine(lon1, lat1, lon2, lat2)
     return distance < dist
 
-def obu_process(broker):
+def obu_process(broker,id):
     # Connect to MQTT broker
     client = mqtt.Client(broker)
     client.on_connect = on_connect
@@ -105,12 +119,27 @@ def obu_process(broker):
     client.on_message = on_message
 
     client.loop_start()
-    client.connect(broker)
+    try:
+        client.connect(broker)    
+    except:
+        print("Could not connect to broker: " + broker)
+        sys.exit(1)
 
-    # ...
+    # send CAM messages every 5 seconds and keeps track of the OBU's position
+    while True:
+        # get updated latitude and longitude of the OBU from the database
+        conn = sqlite3.connect('../obu.db')
+        c = conn.cursor()
+        c.execute("SELECT * FROM obu WHERE id=?", (id,))
+        obu = c.fetchone()
+        conn.close()
+        sendCam(client,obu)
+        # send DENM messages every 2 seconds if the OBU is an emergency vehicle and is in emergency mode
+        if obu[4] in ["AMBULANCE", "FIRE", "POLICE"] and obu[5] == True:
+            sendDenm(client,obu)
+        time.sleep(1)
 
-    client.loop_stop()
-    client.disconnect()
+
 
 def obu_sim(brokers):
     processes = []
@@ -118,7 +147,7 @@ def obu_sim(brokers):
     print("Starting OBU processes")
     for broker in brokers:
         print("Starting OBU process for broker: " + broker[0])
-        p = mp.Process(target=obu_process, args=[broker[0]])
+        p = mp.Process(target=obu_process, args=[broker[0],broker[1]])
         p.start()
         processes.append(p)
         
@@ -129,7 +158,7 @@ def obu_sim(brokers):
 
 if __name__ == '__main__':
     try:
-        obu_sim([("192.168.98.30",1), ("192.168.98.40",2), ("192.168.98.50",3), ("192.168.98.60",4)])
+        obu_sim([("192.168.98.30",3), ("192.168.98.40",4), ("192.168.98.50",5), ("192.168.98.60",6)])
     except KeyboardInterrupt:
         print("Received interrupt signal. Stopping OBU processes...")
         for p in mp.active_children():
