@@ -51,8 +51,7 @@ def on_message(client, userdata, msg):
         
 def sendCam(client,obu):
     if obu[4] == "AMBULANCE" or obu[4] == "FIRE" or obu[4] == "POLICE":
-        # f = open("../messages/CAM_emergency.json", "r")
-        f = open("../messages/CAM_car.json", "r")
+        f = open("../messages/CAM_emergency.json", "r")
     else:
         f = open("../messages/CAM_car.json", "r")
     cam = json.load(f)
@@ -60,10 +59,11 @@ def sendCam(client,obu):
     cam['latitude'] = obu[1]
     cam['longitude'] = obu[2]
 
-    # if obu[5] == True:
-        # cam['specialVehicle']['emergencyContainer']["lightBarSireneInUse"]= "11"
-    print("OBU " + str(obu[0]) + ": Sending CAM message")
+    if obu[5] == True:
+        cam['specialVehicle']['emergencyContainer']["lightBarSirenInUse"]["lightBarActivated"] = True
+        cam['specialVehicle']['emergencyContainer']["lightBarSirenInUse"]["sirenActivated"] = True
     client.publish("vanetza/in/cam", json.dumps(cam))
+    print("Client " + client._client_id.decode("utf-8") + " published a CAM message")
     f.close()  
         
 def sendDenm(client,obu):
@@ -84,8 +84,8 @@ def sendDenm(client,obu):
     denm['management']['eventPosition']['longitude'] = obu[2]
     denm['management']['detectionTime'] = datetime.timestamp(datetime.now())
     denm['management']['referenceTime'] = datetime.timestamp(datetime.now())
-    print("OBU " + str(obu[0]) + ": Sending DENM message")
     client.publish("vanetza/in/denm", json.dumps(denm))
+    print("Client " + client._client_id.decode("utf-8") + " published a DENM message")
     f.close()
 
 def haversine(lon1, lat1, lon2, lat2):
@@ -125,7 +125,7 @@ def obu_process(broker,id):
         print("Could not connect to broker: " + broker)
         sys.exit(1)
 
-    # send CAM messages every 5 seconds and keeps track of the OBU's position
+    # send CAM messages every 2 seconds and keeps track of the OBU's position
     while True:
         # get updated latitude and longitude of the OBU from the database
         conn = sqlite3.connect('../obu.db')
@@ -134,10 +134,10 @@ def obu_process(broker,id):
         obu = c.fetchone()
         conn.close()
         sendCam(client,obu)
-        # send DENM messages every 2 seconds if the OBU is an emergency vehicle and is in emergency mode
+        # send DENM messages if the OBU is an emergency vehicle and is in emergency mode
         if obu[4] in ["AMBULANCE", "FIRE", "POLICE"] and obu[5] == True:
             sendDenm(client,obu)
-        time.sleep(1)
+        time.sleep(2)
 
 
 
@@ -158,7 +158,7 @@ def obu_sim(brokers):
 
 if __name__ == '__main__':
     try:
-        obu_sim([("192.168.98.30",3), ("192.168.98.40",4), ("192.168.98.50",5), ("192.168.98.60",6)])
+        obu_sim([("192.168.98.30",1), ("192.168.98.40",2), ("192.168.98.50",3), ("192.168.98.60",4)])
     except KeyboardInterrupt:
         print("Received interrupt signal. Stopping OBU processes...")
         for p in mp.active_children():

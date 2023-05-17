@@ -20,7 +20,10 @@
     "semiMinorConf": 4095,
     "specialVehicle": {
         "emergencyContainer":{
-            "lightBarSireneInUse": "01"
+            "lightBarSirenInUse":{
+                "lightBarActivated":false,
+                "sirenActivated":false
+            }
         }
     },
     "speed": 50,

@@ -124,7 +124,7 @@ def rsu_sim(brokers):
 
 if __name__ == "__main__":
     try:
-        rsu_sim([("192.168.98.70", 1), ("192.168.98.80",2)])
+        rsu_sim([("192.168.98.70", 10), ("192.168.98.80",11)])
     except KeyboardInterrupt:
         print("Received interrupt signal. Stopping RSU processes...")
         for p in mp.active_children():
