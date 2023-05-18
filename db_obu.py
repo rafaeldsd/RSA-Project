@@ -7,12 +7,12 @@ def obu_db_create():
     c = conn.cursor()
     c.execute('''DROP TABLE if exists obu''')
     c.execute('''CREATE TABLE obu
-                 (id integer, latitude real, longitude real, ip text primary key, type text, emergency boolean)''')
+                 (id integer, ilatitude real, ilongitude real, flatitude real, flongitude real, ip text primary key, type text, emergency boolean)''')
     
-    c.execute('''INSERT INTO obu VALUES (1,"40.63524","-8.65542","192.168.98.30", "AMBULANCE", True)''')
-    c.execute('''INSERT INTO obu VALUES (2,"40.6406","-8.64841","192.168.98.40", "FIRE", False)''')
-    c.execute('''INSERT INTO obu VALUES (3,"40.6305","-8.65402","192.168.98.50", "POLICE", False)''')
-    c.execute('''INSERT INTO obu VALUES (4,"40.64091","-8.659","192.168.98.60", "CAR", False)''')
+    c.execute('''INSERT INTO obu VALUES (1,"40.635427", "-8.655346","40.629565", "-8.660002","192.168.98.30", "AMBULANCE", True)''')
+    c.execute('''INSERT INTO obu VALUES (2,"40.627138", "-8.661054","40.638840", "-8.657047","192.168.98.40", "CAR", False)''')
+    c.execute('''INSERT INTO obu VALUES (3,"40.630633", "-8.653882","40.637057", "-8.653239","192.168.98.50", "POLICE", False)''')
+    c.execute('''INSERT INTO obu VALUES (4,"40.631635", "-8.657348","40.639573", "-8.656768","192.168.98.60", "FIRE", False)''')
 
     conn.commit()
     conn.close()

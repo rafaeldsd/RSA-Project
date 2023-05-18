@@ -124,6 +124,9 @@
 
             // get the rsu variable from app.py
             var rsu = {{ rsu|tojson }};
+
+            // get the obu variable from app.py
+            var obu = {{ obu|tojson }};
             
             // loop through the list and add markers
             for (var i = 0; i < rsu.length; i++) {
@@ -134,69 +137,27 @@
                 });
             }
 
-            var index = 0;
-            var ambulance_coords = [];
-            var car_coords = [];
-            var police_coords = [];
-            var firefighters_coords = [];
-
-            // Fetch the coordinates from the JSON file
-            fetch('static/ambulance_coords.json')
-            .then(response => response.json())
-            .then(data => {
-                ambulance_coords = data;
-            })
-            .catch(error => console.error(error));
-            
-            fetch('static/car_coords.json')
-            .then(response => response.json())
-            .then(data => {
-                car_coords = data;
-            })
-            .catch(error => console.error(error));
-
-            fetch('static/police_coords.json')
-            .then(response => response.json())
-            .then(data => {
-                police_coords = data;
-            })
-            .catch(error => console.error(error));
-
-            fetch('static/firefighters_coords.json')
-            .then(response => response.json())
-            .then(data => {
-                firefighters_coords = data;
-            })
-            .catch(error => console.error(error));
-
-            // Set the last update time initially
-            var now = new Date();
-            document.getElementById("lastUpdate").innerHTML = "Last update: " + now.toLocaleString();
-
-            setInterval(function() {
-                // Check if there are new coordinates to use
-                if (index < ambulance_coords.length ){
-                    ambulance.setPosition(new google.maps.LatLng(ambulance_coords[index].latitude, ambulance_coords[index].longitude));
-                }
-                if (index < car_coords.length ){
-                    cars.setPosition(new google.maps.LatLng(car_coords[index].latitude, car_coords[index].longitude));
-                }
-                if (index < police_coords.length ){
-                    police.setPosition(new google.maps.LatLng(police_coords[index].latitude, police_coords[index].longitude));
-                }
-                if (index < firefighters_coords.length ){
-                    firefighters.setPosition(new google.maps.LatLng(firefighters_coords[index].latitude, firefighters_coords[index].longitude));
-                }
-                index++;
-                
-                // Update the last update time
-                var now = new Date();
-                document.getElementById("lastUpdate").innerHTML = "Last update: " + now.toLocaleString();
-            }, 1000);
+            // Function to update the content with the latest data
+            function updateContent() {
+                $.get("/get_data", function(data) {
+                    ambulance.setPosition(new google.maps.LatLng(data.obu[0][1], data.obu[0][2]));
+                    cars.setPosition(new google.maps.LatLng(data.obu[1][1], data.obu[1][2]));
+                    police.setPosition(new google.maps.LatLng(data.obu[2][1], data.obu[2][2]));
+                    firefighters.setPosition(new google.maps.LatLng(data.obu[3][1], data.obu[3][2]));
+                    
+                    // Update the last update time
+                    var now = new Date();
+                    document.getElementById("lastUpdate").innerHTML = "Last update: " + now.toLocaleString();
+                });
+            }
+            // Periodically update the content every 1 seconds 
+            setInterval(updateContent, 1000);
         }
     </script>
    
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDcLG_2KgktdQJXLaeyQZHJzmvcSjNwoPM&callback=myMap"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
 
 </body>
 </html>
