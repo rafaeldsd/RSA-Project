@@ -20,6 +20,7 @@ def on_message(client, userdata, msg):
     m_decode=str(msg.payload.decode("utf-8","ignore"))
     denm=json.loads(m_decode)
     broker = client._client_id.decode("utf-8")
+    print(denm)
 
     # get the coordinates of this OBU
     conn = sqlite3.connect('obu.db')
@@ -27,7 +28,6 @@ def on_message(client, userdata, msg):
     c.execute("SELECT * FROM obu WHERE ip=?", (broker,))
     obu = c.fetchone()
     conn.close()
-
     # check what type of obu is
     # if it is a car and an emergency vehicle without an emergency
     if obu[6] == "CAR" or (obu[6] in ["AMBULANCE", "FIRE", "POLICE"] and obu[7] == False):
@@ -35,20 +35,23 @@ def on_message(client, userdata, msg):
         if is_within(obu[2], obu[1], denm['management']['eventPosition']['latitude'], denm['management']['eventPosition']['longitude'],50) and denm['management']['situation']['informationQuality'] == 7:
             print("OBU " + str(client._client_id.decode("utf-8")) + " detected movement in the area with id: " + str(denm['management']['actionID']['originatingStationID']))
             # check if it is emergency vehicle
-            if denm['management']['situation']['eventType']['causeCode'] == 4:
-                if denm['management']['situation']['eventType']['subCauseCode'] == 2:
+            if denm['situation']['eventType']['causeCode'] == 4:
+                if denm['situation']['eventType']['subCauseCode'] == 2:
                     print("OBU"+ str(client._client_id) +" detected an ambulance")
-                elif denm['management']['situation']['eventType']['subCauseCode'] == 3:
+                elif denm['situation']['eventType']['subCauseCode'] == 3:
                     print("OBU"+ str(client._client_id) +" detected a fire truck")
-                elif denm['management']['situation']['eventType']['subCauseCode'] == 4:
+                elif denm['situation']['eventType']['subCauseCode'] == 4:
                     print("OBU"+ str(client._client_id) +" detected a police car")
                 else:
                     print("OBU"+ str(client._client_id) +" detected an unknown emergency vehicle")
                 # Print a alert message to the driver of the car, telling him to get out of the way
                 print("PLEASE GET OUT OF THE WAY OF THE EMERGENCY VEHICLE!")
+
                 if is_within(obu[2], obu[1], denm['management']['eventPosition']['latitude'], denm['management']['eventPosition']['longitude'],25):
                     print("YOU ARE TOO CLOSE TO THE EMERGENCY VEHICLE!")
                     print("MOVE IMMEDIATELY!")
+                
+                
             else:
                 print("OBU " + str(client._client_id.decode("utf-8")) + " detected a DENM message with cause code: " + str(denm['management']['situation']['eventType']['causeCode']) + " and subcause code: " + str(denm['management']['situation']['eventType']['subCauseCode']))
         
@@ -114,7 +117,8 @@ def is_within(lon1, lat1, lon2, lat2, dist):
     distance = haversine(lon1, lat1, lon2, lat2)
     return distance < dist
 
-def obu_process(broker,id,lock):
+
+def obu_process(broker,id):
     # Connect to MQTT broker
     client = mqtt.Client(broker)
     client.on_connect = on_connect
@@ -130,41 +134,48 @@ def obu_process(broker,id,lock):
     # wait until the connection is established
     while not client.is_connected():
         pass
+    time.sleep(0.5)
     
-    # get updated latitude and longitude of the OBU from the database
-    conn = sqlite3.connect('obu.db')
-    c = conn.cursor()
-    c.execute("SELECT * FROM obu WHERE id=?", (id,))
-    obu = c.fetchone()
-    conn.close()
-    # send CAM messages every 1 seconds and keeps track of the OBU's position
-    while True:
-        # coords = get_coords(obu[1], obu[2], obu[3], obu[4]) # Takes to long to get the coordinates
+    # read the coordinates from the file
+    with open('paths/coords'+str(id)+'.json') as json_file:
+        coords = json.load(json_file)
+    i = 0
+    # until it reaches the end of the path
+    while i < len(coords):
+        # get updated latitude and longitude of the OBU from the database
+        conn = sqlite3.connect('obu.db')
+        c = conn.cursor()
+        c.execute("SELECT * FROM obu WHERE id=?", (id,))
+        obu = c.fetchone()
+        conn.close()
+
         if (obu[1] != obu[3]) or (obu[2] != obu[4]):
             # update the OBU's position
             conn = sqlite3.connect('obu.db')
             c = conn.cursor()
-            # c.execute("UPDATE obu SET ilatitude=?, ilongitude=? WHERE id=?", (coords[1]['latitude'], coords[1]['longitude'], id))
-            # conn.commit()
+            c.execute("UPDATE obu SET ilatitude=?, ilongitude=? WHERE id=?", (coords[i]['latitude'], coords[i]['longitude'], id))
+            conn.commit()
             conn.close()
         # send CAM messages
         sendCam(client,obu)
         # send DENM messages if the OBU is an emergency vehicle and is in emergency mode
         if obu[6] in ["AMBULANCE", "FIRE", "POLICE"] and obu[7] == True:
             sendDenm(client,obu)
-        time.sleep(1)
+        i += 1
+        time.sleep(0.5)
+    print("OBU " + str(id) + " finished the path")
+    client.loop_stop()
+    client.disconnect()
 
 
 
 def obu_sim(brokers):
-    lock = mp.Lock()
-
     processes = []
 
     print("Starting OBU processes")
     for broker in brokers:
         print("Starting OBU process for broker: " + broker[0])
-        p = mp.Process(target=obu_process, args=[broker[0],broker[1],lock])
+        p = mp.Process(target=obu_process, args=[broker[0],broker[1]])
         p.start()
         processes.append(p)
         

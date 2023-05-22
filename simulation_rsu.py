@@ -29,7 +29,7 @@ def on_message(client, userdata, msg):
 
     
     # get the coordinates of this RSU
-    conn = sqlite3.connect('../rsu.db')
+    conn = sqlite3.connect('rsu.db')
     c = conn.cursor()
     c.execute("SELECT * FROM rsu WHERE ip=?", (broker,)) 
     rsu = c.fetchone()
