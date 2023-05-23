@@ -4,7 +4,7 @@ from datetime import datetime
 from coordinates import get_coords
 import sqlite3, math, time
 from db_obu import obu_db_create
-from db_rsu import rsu_db_create
+
 
 def on_connect(client, userdata, flags, rc):
     if rc==0:
@@ -162,7 +162,7 @@ def obu_process(broker,id):
         if obu[6] in ["AMBULANCE", "FIRE", "POLICE"] and obu[7] == True:
             sendDenm(client,obu)
         i += 1
-        time.sleep(0.5)
+        time.sleep(0.1)
     print("OBU " + str(id) + " finished the path")
     client.loop_stop()
     client.disconnect()
@@ -187,7 +187,6 @@ def obu_sim(brokers):
 if __name__ == '__main__':
     try:
         obu_db_create()
-        rsu_db_create()
         obu_sim([("192.168.98.30",1), ("192.168.98.40",2), ("192.168.98.50",3), ("192.168.98.60",4)])
     except KeyboardInterrupt:
         print("Received interrupt signal. Stopping OBU processes...")

@@ -27,7 +27,7 @@
     "speedConf": 127,
     "speedLimiter": true,
     "stationID": 1,
-    "stationType": 15,
+    "stationType": 5,
     "width": 3.0,
     "yawRate": 0
 }
