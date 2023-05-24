@@ -68,6 +68,40 @@ def on_message(client, userdata, msg):
             else:
                 print("and unknown causeCode(" + str(denm['fields']['denm']['situation']['eventType']['causeCode']) + ")")
             
+'''
+#Use of geographiclib to make geodesic calculations
+#Documentation https://geographiclib.sourceforge.io/html/python/index.html
+    and https://geographiclib.sourceforge.io/2009-03/classGeographicLib_1_1Geodesic.html
+#Author: Charles F. F. Karney (charles@karney.com)
+#To install the package 'pip install geographiclib'
+
+#Code:
+
+from geographiclib.geodesic import Geodesic
+
+geod = Geodesic.WGS84
+
+geo = Geodesic.WGS84.Inverse(lat1, long1, lat2, long2)
+
+distance = geo['s12'] #in meters
+heading = geo[azi2] #in degrees clockwise
+
+#print test:
+print("The distance is {:.3f} m.".format(geo['s12']))
+print("The distance is {:.3f} m.".format(geo['azi2']))
+
+geo_cam-rsu = Geodesic.WGS84.Inverse(cam['latitude'], cam['longitude'],rsu[1], rsu[2])
+
+geo_demn-rsu = Geodesic.WGS84.Inverse(denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'], rsu[1], rsu[2])
+
+dist_cam = cam-rsu['s12']
+dist_demn = demn-rsu['s12']
+head_cam = cam-rsu['azi2']
+head_demn = demn-rsu['azi2']
+'''
+
+
+
 
 def calculate_distance(lat1, lon1, lat2, lon2):
     # Convert degrees to radians
