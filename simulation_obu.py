@@ -94,6 +94,35 @@ def sendDenm(client,obu):
     print("Client " + client._client_id.decode("utf-8") + " published a DENM message")
     f.close()
 
+'''
+#Use of geographiclib to make geodesic calculations
+#Documentation https://geographiclib.sourceforge.io/html/python/index.html
+    and https://geographiclib.sourceforge.io/2009-03/classGeographicLib_1_1Geodesic.html
+#Author: Charles F. F. Karney (charles@karney.com)
+#To install the package 'pip install geographiclib'
+
+#Code:
+
+from geographiclib.geodesic import Geodesic
+
+geod = Geodesic.WGS84               #Instantiation of the Geodesic object on WGS84 ellipsoid format
+
+geo_cam-obu = Geodesic.WGS84.Inverse(cam['latitude'], cam['longitude'],obu[1], obu[2])
+
+geo_demn-obu = Geodesic.WGS84.Inverse(denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'], rsu[1], rsu[2])
+
+dist_cam = cam-obu['s12'] #in meters
+dist_demn = demn-obu['s12'] #in meters
+head_cam = cam-obu['azi2'] #in degrees clockwise
+head_demn = demn-obu['azi2'] #in degrees clockwise
+
+#print test:
+print("The distance is {:.3f} m.".format(cam-obu['s12']))
+print("The distance is {:.3f} m.".format(cam-obu['azi2']))
+'''
+
+
+
 def haversine(lon1, lat1, lon2, lat2):
     """
     Calculate the great circle distance between two points 
@@ -167,6 +196,18 @@ def obu_process(broker,id):
     client.loop_stop()
     client.disconnect()
 
+'''
+#TO DO!:
+#*Calculate the heading of each OBU base on the current coordinates (lat,long) and the previous
+#*Pass the heading value to the DENM 'semiMajorOrientation' field and the CAM 'heading' field
+#Method:
+
+geo = Geodesic.WGS84.Inverse(lat1, long1, lat2, long2)  #lat1 and long1 are the previous coordinates, lat2 and long2 are the current coordinates of the OBU 
+
+heading = geo[azi2] #in degrees clockwise
+
+
+'''
 
 
 def obu_sim(brokers):
