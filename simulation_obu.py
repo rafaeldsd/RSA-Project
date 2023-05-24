@@ -202,10 +202,10 @@ def obu_process(broker,id):
 #*Pass the heading value to the DENM 'semiMajorOrientation' field and the CAM 'heading' field
 #Method:
 
-geo = Geodesic.WGS84.Inverse(lat1, long1, lat2, long2)  #lat1 and long1 are the previous coordinates, lat2 and long2 are the current coordinates of the OBU 
+geo = Geodesic.WGS84.Inverse(obu[1], obu[2], obu[3], obu[4])  #lat1 and long1 are the previous coordinates, lat2 and long2 are the current coordinates of the OBU 
 
 heading = geo[azi2] #in degrees clockwise
-
+distance = geo[s12] #in meters
 
 '''
 
