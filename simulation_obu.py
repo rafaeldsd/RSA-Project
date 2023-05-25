@@ -29,9 +29,20 @@ def on_message(client, userdata, msg):
     c.execute("SELECT * FROM obu WHERE ip=?", (broker,))
     obu = c.fetchone()
     conn.close()
+    relative_heading = Geodesic.WGS84.Inverse(denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'], obu[1], obu[2])['azi2']
+    erv_heading = Geodesic.WGS84.Inverse(obu[1], obu[2], obu[3], obu[4])['azi2'] # obu[1] and obu[2]=coordinates at instant t-1, obu[3] and obu[4]=coordinates at instant t 
+    ref_heading = relative_heading-erv_heading
     # check what type of obu is
     # if it is a car and an emergency vehicle without an emergency
     if obu[6] == "CAR" or (obu[6] in ["AMBULANCE", "FIRE", "POLICE"] and obu[7] == False):
+        #Check the direction of the ERV relative to a normal vehicle        
+        if ref_heading in range(-30, 30):
+            print("There is an emergency response veicle aproaching")
+        elif ref_heading in range(-150, 150):
+            print("There is an emergency response veicle is heading away")
+        else:
+            print("The emergency response veicle is not coming on this direction")        
+        
         # check if the car is within 50 meters of the OBU and if it is moving
         if get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]<200 and denm['fields']['denm']['situation']['informationQuality'] == 7:
             print("OBU " + str(client._client_id.decode("utf-8")) + " detected a DENM: id(" + str(denm['fields']['denm']['management']['actionID']['originatingStationID']) + "), informationQuality(" + str(denm['fields']['denm']['situation']['informationQuality']) + ")", end=" ")
@@ -57,7 +68,9 @@ def on_message(client, userdata, msg):
                 if get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0] < 50:
                     print("ATTENTION! "+ vehicle +" at " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]) + " meters in direction " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[1]) + "! Please take precautions immediately!")
             
-    
+        
+
+
 def sendCam(client,obu):
     if obu[6] == "AMBULANCE" or obu[6] == "FIRE" or obu[6] == "POLICE":
         f = open("messages/CAM_emergency.json", "r")
@@ -65,9 +78,9 @@ def sendCam(client,obu):
         f = open("messages/CAM_car.json", "r")
     cam = json.load(f)
     cam['stationID'] = obu[0]
+    cam['heading'] = Geodesic.WGS84.Inverse(obu[1], obu[2], obu[3], obu[4])['azi2']
     cam['latitude'] = obu[1]
-    cam['longitude'] = obu[2]
-
+    cam['longitude'] = obu[2]    
     if obu[7] == True:
         cam['specialVehicle']['emergencyContainer']["lightBarSirenInUse"]["lightBarActivated"] = True
         cam['specialVehicle']['emergencyContainer']["lightBarSirenInUse"]["sirenActivated"] = True
@@ -91,6 +104,7 @@ def sendDenm(client,obu):
     denm['management']['actionID']['originatingStationID'] = obu[0]
     denm['management']['eventPosition']['latitude'] = obu[1]
     denm['management']['eventPosition']['longitude'] = obu[2]
+    denm['management']['eventPosition']['positionConfidenceEllipse']['semiMajorOrientation'] = Geodesic.WGS84.Inverse(obu[1], obu[2], obu[3], obu[4])['azi2']
     denm['management']['detectionTime'] = datetime.timestamp(datetime.now())
     denm['management']['referenceTime'] = datetime.timestamp(datetime.now())
     client.publish("vanetza/in/denm", json.dumps(denm))
@@ -125,10 +139,6 @@ def get_dis_dir(lat1, lon1, lat2, lon2):
 
     return round(distance,3), heading
 
-if ref_heading in range(-30, 30):
-    #print("The emergency veicle is aproaching")
-else:
-    #print("The emergency veicle is not coming on this direction")
 
 def obu_process(broker,id):
     # Connect to MQTT broker
