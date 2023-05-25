@@ -125,6 +125,11 @@ def get_dis_dir(lat1, lon1, lat2, lon2):
 
     return round(distance,3), heading
 
+if ref_heading in range(-30, 30):
+    #print("The emergency veicle is aproaching")
+else:
+    #print("The emergency veicle is not coming on this direction")
+
 def obu_process(broker,id):
     # Connect to MQTT broker
     client = mqtt.Client(broker)
