@@ -50,7 +50,6 @@ def on_message(client, userdata, msg):
                     print("(Special vehicle not in emergency)")
             else:
                 print("(Normal vehicle)")
-
     
     # check if the car is within 50 meters of the RSU and if it is moving (DENM)
     if denm is not None:
@@ -69,7 +68,13 @@ def on_message(client, userdata, msg):
                     print("Unknown)")
             else:
                 print("and unknown causeCode(" + str(denm['fields']['denm']['situation']['eventType']['causeCode']) + ")")
+            send_denm(denm,client)
+
             
+def send_denm(denm,client):
+    denm['fields']['denm']['management']['referenceTime'] = datetime.timestamp(datetime.now())
+    client.publish("vanetza/in/denm", json.dumps(denm))
+    
 def get_dis_dir(lat1, lon1, lat2, lon2):
     geo = Geodesic.WGS84.Inverse(lat1, lon1, lat2, lon2)
 

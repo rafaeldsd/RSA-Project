@@ -2,7 +2,7 @@ import googlemaps
 import json
 import datetime
 from polyline import decode 
-
+import sqlite3
 
 def get_coords(lat1, lon1, lat2, lon2,id):   
     gmaps = googlemaps.Client(key='AIzaSyB5IcIzPvGKxfBjbzl6x1f_T_DdABVk-u4')
@@ -19,7 +19,13 @@ def get_coords(lat1, lon1, lat2, lon2,id):
         json.dump(coords_list, outfile)
 
 if __name__ == "__main__":
-    get_coords(40.635427,-8.655346,40.629565, -8.660002,1)
-    get_coords(40.627138,-8.661054,40.638840, -8.657047,2)
-    get_coords(40.630633,-8.653882,40.637057, -8.653239,3)
-    get_coords(40.631635,-8.657348,40.638562, -8.656779,4)
+    # get obu data from db
+    conn = sqlite3.connect('obu.db')
+    c = conn.cursor()
+    c.execute('''SELECT * FROM obu''')
+    obus = c.fetchall()
+    conn.close()
+    # get the coordinates for each obu
+    for obu in obus:
+        get_coords(obu[1],obu[2],obu[3],obu[4],obu[0])
+
