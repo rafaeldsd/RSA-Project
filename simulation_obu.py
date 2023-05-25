@@ -4,6 +4,8 @@ from datetime import datetime
 from coordinates import get_coords
 import sqlite3, math, time
 from db_obu import obu_db_create
+from geographiclib.geodesic import Geodesic
+
 
 
 def on_connect(client, userdata, flags, rc):
@@ -20,7 +22,6 @@ def on_message(client, userdata, msg):
     m_decode=str(msg.payload.decode("utf-8","ignore"))
     denm=json.loads(m_decode)
     broker = client._client_id.decode("utf-8")
-    print(denm)
 
     # get the coordinates of this OBU
     conn = sqlite3.connect('obu.db')
@@ -32,29 +33,30 @@ def on_message(client, userdata, msg):
     # if it is a car and an emergency vehicle without an emergency
     if obu[6] == "CAR" or (obu[6] in ["AMBULANCE", "FIRE", "POLICE"] and obu[7] == False):
         # check if the car is within 50 meters of the OBU and if it is moving
-        if is_within(obu[2], obu[1], denm['management']['eventPosition']['latitude'], denm['management']['eventPosition']['longitude'],50) and denm['management']['situation']['informationQuality'] == 7:
-            print("OBU " + str(client._client_id.decode("utf-8")) + " detected movement in the area with id: " + str(denm['management']['actionID']['originatingStationID']))
+        if get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]<250 and denm['fields']['denm']['situation']['informationQuality'] == 7:
+            print("OBU " + str(client._client_id.decode("utf-8")) + " detected a DENM: id(" + str(denm['fields']['denm']['management']['actionID']['originatingStationID']) + "), informationQuality(" + str(denm['fields']['denm']['situation']['informationQuality']) + ")", end=" ")
             # check if it is emergency vehicle
-            if denm['situation']['eventType']['causeCode'] == 4:
-                if denm['situation']['eventType']['subCauseCode'] == 2:
-                    print("OBU"+ str(client._client_id) +" detected an ambulance")
-                elif denm['situation']['eventType']['subCauseCode'] == 3:
-                    print("OBU"+ str(client._client_id) +" detected a fire truck")
-                elif denm['situation']['eventType']['subCauseCode'] == 4:
-                    print("OBU"+ str(client._client_id) +" detected a police car")
+            if denm['fields']['denm']['situation']['eventType']['causeCode'] == 4:
+                print("and Emergency vehicle (", end="")
+                if denm['fields']['denm']['situation']['eventType']['subCauseCode'] == 2:
+                    print("Ambulance)")
+                    print("An ambulance is " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]) + " meters away. Please take precautions!")
+                elif denm['fields']['denm']['situation']['eventType']['subCauseCode'] == 3:
+                    print("Fire truck)")
+                    print("A fire truck is " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]) + " meters away. Please take precautions!")
+                elif denm['fields']['denm']['situation']['eventType']['subCauseCode'] == 4:
+                    print("Police car)")
+                    print("A police car is " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]) + " meters away. Please take precautions!")
                 else:
-                    print("OBU"+ str(client._client_id) +" detected an unknown emergency vehicle")
-                # Print a alert message to the driver of the car, telling him to get out of the way
-                print("PLEASE GET OUT OF THE WAY OF THE EMERGENCY VEHICLE!")
+                    print("Unknown)")
 
-                if is_within(obu[2], obu[1], denm['management']['eventPosition']['latitude'], denm['management']['eventPosition']['longitude'],25):
-                    print("YOU ARE TOO CLOSE TO THE EMERGENCY VEHICLE!")
-                    print("MOVE IMMEDIATELY!")
-                
-                
             else:
-                print("OBU " + str(client._client_id.decode("utf-8")) + " detected a DENM message with cause code: " + str(denm['management']['situation']['eventType']['causeCode']) + " and subcause code: " + str(denm['management']['situation']['eventType']['subCauseCode']))
-        
+                print("and unknown causeCode(" + str(denm['fields']['denm']['situation']['eventType']['causeCode']) + ")")
+
+            if get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0] < 100:
+                print("ATTENTION! Emergency vehicle less than 50 meters away. Please take precautions immediately.")
+            
+    
 def sendCam(client,obu):
     if obu[6] == "AMBULANCE" or obu[6] == "FIRE" or obu[6] == "POLICE":
         f = open("messages/CAM_emergency.json", "r")
@@ -69,7 +71,7 @@ def sendCam(client,obu):
         cam['specialVehicle']['emergencyContainer']["lightBarSirenInUse"]["lightBarActivated"] = True
         cam['specialVehicle']['emergencyContainer']["lightBarSirenInUse"]["sirenActivated"] = True
     client.publish("vanetza/in/cam", json.dumps(cam))
-    print("Client " + client._client_id.decode("utf-8") + " published a CAM message")
+    # print("Client " + client._client_id.decode("utf-8") + " published a CAM message")
     f.close()  
         
 def sendDenm(client,obu):
@@ -91,61 +93,36 @@ def sendDenm(client,obu):
     denm['management']['detectionTime'] = datetime.timestamp(datetime.now())
     denm['management']['referenceTime'] = datetime.timestamp(datetime.now())
     client.publish("vanetza/in/denm", json.dumps(denm))
-    print("Client " + client._client_id.decode("utf-8") + " published a DENM message")
+    # print("Client " + client._client_id.decode("utf-8") + " published a DENM message")
     f.close()
 
-'''
-#Use of geographiclib to make geodesic calculations
-#Documentation https://geographiclib.sourceforge.io/html/python/index.html
-    and https://geographiclib.sourceforge.io/2009-03/classGeographicLib_1_1Geodesic.html
-#Author: Charles F. F. Karney (charles@karney.com)
-#To install the package 'pip install geographiclib'
+def get_dis_dir(lat1, lon1, lat2, lon2):
+    geo = Geodesic.WGS84.Inverse(lat1, lon1, lat2, lon2)
 
-#Code:
+    distance = geo['s12'] #in meters
+    heading = geo['azi2'] #in degrees clockwise from north
 
-from geographiclib.geodesic import Geodesic
+    # heading from -180 to 180
+    if heading >-30 and heading <30:
+        heading = "North"
+    elif heading >30 and heading <60:
+        heading = "North-East"
+    elif heading >60 and heading <120:
+        heading = "East"
+    elif heading >120 and heading <150:
+        heading = "South-East"
+    elif heading >150 or heading <-150:
+        heading = "South"
+    elif heading >-150 and heading <-120:
+        heading = "South-West"
+    elif heading >-120 and heading <-60:
+        heading = "West"
+    elif heading >-60 and heading <-30:
+        heading = "North-West"
+    else:
+        heading = "Unknown"
 
-geod = Geodesic.WGS84               #Instantiation of the Geodesic object on WGS84 ellipsoid format
-
-geo_cam-obu = Geodesic.WGS84.Inverse(cam['latitude'], cam['longitude'],obu[1], obu[2])
-
-geo_demn-obu = Geodesic.WGS84.Inverse(denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'], rsu[1], rsu[2])
-
-dist_cam = cam-obu['s12'] #in meters
-dist_demn = demn-obu['s12'] #in meters
-head_cam = cam-obu['azi2'] #in degrees clockwise
-head_demn = demn-obu['azi2'] #in degrees clockwise
-
-#print test:
-print("The distance is {:.3f} m.".format(cam-obu['s12']))
-print("The distance is {:.3f} m.".format(cam-obu['azi2']))
-'''
-
-
-
-def haversine(lon1, lat1, lon2, lat2):
-    """
-    Calculate the great circle distance between two points 
-    on the earth (specified in decimal degrees)
-    """
-    # convert decimal degrees to radians 
-    lon1, lat1, lon2, lat2 = map(math.radians, [lon1, lat1, lon2, lat2])
-
-    # haversine formula 
-    dlon = lon2 - lon1 
-    dlat = lat2 - lat1 
-    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
-    c = 2 * math.asin(math.sqrt(a)) 
-    r = 6371 # Radius of earth in kilometers. Use 3956 for miles
-    return c * r * 1000 # multiply by 1000 to get distance in meters
-
-def is_within(lon1, lat1, lon2, lat2, dist):
-    """
-    Check if the distance between two points is less than a given distance
-    """
-    distance = haversine(lon1, lat1, lon2, lat2)
-    return distance < dist
-
+    return round(distance,3), heading
 
 def obu_process(broker,id):
     # Connect to MQTT broker
@@ -171,6 +148,7 @@ def obu_process(broker,id):
     i = 0
     # until it reaches the end of the path
     while i < len(coords):
+        client.subscribe('vanetza/out/denm')
         # get updated latitude and longitude of the OBU from the database
         conn = sqlite3.connect('obu.db')
         c = conn.cursor()
@@ -191,7 +169,7 @@ def obu_process(broker,id):
         if obu[6] in ["AMBULANCE", "FIRE", "POLICE"] and obu[7] == True:
             sendDenm(client,obu)
         i += 1
-        time.sleep(0.1)
+        time.sleep(0.5)
     print("OBU " + str(id) + " finished the path")
     client.loop_stop()
     client.disconnect()

@@ -4,6 +4,8 @@ from datetime import datetime
 import sqlite3
 from math import radians, cos, sin, asin, sqrt, atan2
 from db_rsu import rsu_db_create
+from geographiclib.geodesic import Geodesic
+
 
 def on_connect(client, userdata, flags, rc):
     if rc==0:
@@ -37,8 +39,8 @@ def on_message(client, userdata, msg):
     conn.close()
     # check if the car is within 50 meters of the RSU and if it is moving (CAM)
     if cam is not None:
-        if calculate_distance(rsu[1], rsu[2], cam['latitude'], cam['longitude'])<200 and cam['speed'] > 0:
-            print("RSU " + str(client._client_id.decode("utf-8")) + " detected a CAM: id(" + str(cam['stationID']) + "), speed(" + str(cam['speed']) + ") and distance(" + str(calculate_distance(rsu[1], rsu[2], cam['latitude'], cam['longitude'])) + "m)", end=" ")
+        if get_dis_dir(rsu[1], rsu[2], cam['latitude'], cam['longitude'])[0]<200 and cam['speed']>0:
+            print("RSU " + str(client._client_id.decode("utf-8")) + " detected a CAM: id(" + str(cam['stationID']) + "), speed(" + str(cam['speed']) + "), distance(" + str(get_dis_dir(rsu[1], rsu[2], cam['latitude'], cam['longitude'])[0]) + "m) and direction(" + str(get_dis_dir(rsu[1], rsu[2], cam['latitude'], cam['longitude'])[1]) + ")", end=" ")
             #check if exists a ["specialVehicle"]["emergencyContainer"] in the cam message
             if 'emergencyContainer' in cam["specialVehicle"]:
                 # check if it is emergency vehicle 
@@ -52,7 +54,7 @@ def on_message(client, userdata, msg):
     
     # check if the car is within 50 meters of the RSU and if it is moving (DENM)
     if denm is not None:
-        if calculate_distance(rsu[1], rsu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])<200 and denm['fields']['denm']['situation']['informationQuality'] == 7:
+        if get_dis_dir(rsu[1], rsu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]<200 and denm['fields']['denm']['situation']['informationQuality'] == 7:
             print("RSU " + str(client._client_id.decode("utf-8")) + " detected a DENM: id(" + str(denm['fields']['denm']['management']['actionID']["originatingStationID"]) + "), informationQuality(" + str(denm['fields']['denm']['situation']['informationQuality']) + ")", end=" ")
             # check if it is emergency vehicle
             if denm['fields']['denm']['situation']['eventType']['causeCode'] == 4:
@@ -68,59 +70,33 @@ def on_message(client, userdata, msg):
             else:
                 print("and unknown causeCode(" + str(denm['fields']['denm']['situation']['eventType']['causeCode']) + ")")
             
-'''
-#Use of geographiclib to make geodesic calculations
-#Documentation https://geographiclib.sourceforge.io/html/python/index.html
-    and https://geographiclib.sourceforge.io/2009-03/classGeographicLib_1_1Geodesic.html
-#Author: Charles F. F. Karney (charles@karney.com)
-#To install the package 'pip install geographiclib'
+def get_dis_dir(lat1, lon1, lat2, lon2):
+    geo = Geodesic.WGS84.Inverse(lat1, lon1, lat2, lon2)
 
-#Code:
+    distance = geo['s12'] #in meters
+    heading = geo['azi2'] #in degrees clockwise from north
 
-from geographiclib.geodesic import Geodesic
+    # heading from -180 to 180
+    if heading >-30 and heading <30:
+        heading = "North"
+    elif heading >30 and heading <60:
+        heading = "North-East"
+    elif heading >60 and heading <120:
+        heading = "East"
+    elif heading >120 and heading <150:
+        heading = "South-East"
+    elif heading >150 or heading <-150:
+        heading = "South"
+    elif heading >-150 and heading <-120:
+        heading = "South-West"
+    elif heading >-120 and heading <-60:
+        heading = "West"
+    elif heading >-60 and heading <-30:
+        heading = "North-West"
+    else:
+        heading = "Unknown"
 
-geod = Geodesic.WGS84
-
-geo = Geodesic.WGS84.Inverse(lat1, long1, lat2, long2)
-
-distance = geo['s12'] #in meters
-heading = geo[azi2] #in degrees clockwise
-
-#print test:
-print("The distance is {:.3f} m.".format(geo['s12']))
-print("The distance is {:.3f} m.".format(geo['azi2']))
-
-geo_cam-rsu = Geodesic.WGS84.Inverse(cam['latitude'], cam['longitude'],rsu[1], rsu[2])
-
-geo_demn-rsu = Geodesic.WGS84.Inverse(denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'], rsu[1], rsu[2])
-
-dist_cam = cam-rsu['s12']
-dist_demn = demn-rsu['s12']
-head_cam = cam-rsu['azi2']
-head_demn = demn-rsu['azi2']
-'''
-
-
-
-
-def calculate_distance(lat1, lon1, lat2, lon2):
-    # Convert degrees to radians
-    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
-
-    # Radius of the Earth in meters
-    earth_radius = 6371000.0
-
-    # Calculate the differences in latitude and longitude
-    dlat = lat2 - lat1
-    dlon = lon2 - lon1
-
-    # Use the Haversine formula to calculate the distance
-    a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
-    c = 2 * atan2(sqrt(a), sqrt(1 - a))
-    distance = earth_radius * c
-
-    # Return the distance rounded to 3 decimal places
-    return round(distance,3)
+    return round(distance,3), heading
 
 def rsu_process(broker):
     # Connect to MQTT broker
@@ -141,7 +117,6 @@ def rsu_process(broker):
         client.subscribe('vanetza/out/cam')
         client.subscribe('vanetza/out/denm')
         time.sleep(0.1)
-  
 
 def rsu_sim(brokers):
     processes = []
