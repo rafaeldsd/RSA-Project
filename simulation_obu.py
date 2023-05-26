@@ -29,12 +29,15 @@ def on_message(client, userdata, msg):
     c.execute("SELECT * FROM obu WHERE ip=?", (broker,))
     obu = c.fetchone()
     conn.close()
+    '''
     relative_heading = Geodesic.WGS84.Inverse(denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'], obu[1], obu[2])['azi2']
     erv_heading = Geodesic.WGS84.Inverse(obu[1], obu[2], obu[3], obu[4])['azi2'] # obu[1] and obu[2]=coordinates at instant t-1, obu[3] and obu[4]=coordinates at instant t 
     ref_heading = relative_heading-erv_heading
+    '''
     # check what type of obu is
     # if it is a car and an emergency vehicle without an emergency
     if obu[6] == "CAR" or (obu[6] in ["AMBULANCE", "FIRE", "POLICE"] and obu[7] == False):
+        '''
         #Check the direction of the ERV relative to a normal vehicle        
         if ref_heading in range(-30, 30):
             print("There is an emergency response veicle aproaching")
@@ -42,8 +45,8 @@ def on_message(client, userdata, msg):
             print("There is an emergency response veicle is heading away")
         else:
             print("The emergency response veicle is not coming on this direction")        
-        
-        # check if the car is within 50 meters of the OBU and if it is moving
+        '''
+        # check if the car is within 200 meters of the OBU and if it is moving
         if get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]<200 and denm['fields']['denm']['situation']['informationQuality'] == 7:
             print("OBU " + str(client._client_id.decode("utf-8")) + " detected a DENM: id(" + str(denm['fields']['denm']['management']['actionID']['originatingStationID']) + "), informationQuality(" + str(denm['fields']['denm']['situation']['informationQuality']) + ")", end=" ")
             # check if it is emergency vehicle
@@ -64,21 +67,18 @@ def on_message(client, userdata, msg):
                 else:
                     print("Unknown)")
                     vehicle = "Unknown vehicle"
-                    
+                # check if the car is within 50 meters of the OBU
                 if get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0] < 50:
                     print("ATTENTION! "+ vehicle +" at " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]) + " meters in direction " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[1]) + "! Please take precautions immediately!")
             
-        
-
-
-def sendCam(client,obu):
+def sendCam(client,obu,next_coord):
     if obu[6] == "AMBULANCE" or obu[6] == "FIRE" or obu[6] == "POLICE":
         f = open("messages/CAM_emergency.json", "r")
     else:
         f = open("messages/CAM_car.json", "r")
     cam = json.load(f)
     cam['stationID'] = obu[0]
-    cam['heading'] = Geodesic.WGS84.Inverse(obu[1], obu[2], obu[3], obu[4])['azi2']
+    cam['heading'] = degree_conversion(obu[1], obu[2], next_coord['latitude'],next_coord['longitude'])
     cam['latitude'] = obu[1]
     cam['longitude'] = obu[2]    
     if obu[7] == True:
@@ -88,7 +88,7 @@ def sendCam(client,obu):
     # print("Client " + client._client_id.decode("utf-8") + " published a CAM message")
     f.close()  
         
-def sendDenm(client,obu):
+def sendDenm(client,obu,next_coord):
     # Check what type of vehicle is
     if obu[6] == "AMBULANCE":
         f = open("messages/DENM_ambulance.json", "r")
@@ -104,7 +104,7 @@ def sendDenm(client,obu):
     denm['management']['actionID']['originatingStationID'] = obu[0]
     denm['management']['eventPosition']['latitude'] = obu[1]
     denm['management']['eventPosition']['longitude'] = obu[2]
-    denm['management']['eventPosition']['positionConfidenceEllipse']['semiMajorOrientation'] = Geodesic.WGS84.Inverse(obu[1], obu[2], obu[3], obu[4])['azi2']
+    denm['management']['eventPosition']['positionConfidenceEllipse']['semiMajorOrientation'] = degree_conversion(obu[1], obu[2], next_coord['latitude'],next_coord['longitude'])
     denm['management']['detectionTime'] = datetime.timestamp(datetime.now())
     denm['management']['referenceTime'] = datetime.timestamp(datetime.now())
     client.publish("vanetza/in/denm", json.dumps(denm))
@@ -139,6 +139,17 @@ def get_dis_dir(lat1, lon1, lat2, lon2):
 
     return round(distance,3), heading
 
+def degree_conversion(lat1,lon1,lat2,lon2):
+    # only get values 0-360
+    degree = Geodesic.WGS84.Inverse(lat1, lon1, lat2, lon2)['azi2']
+    if degree < 0:
+        degree = 360 + degree
+    # not valid degree
+    if degree > 360 or degree < 0:
+        degree = 361
+    # send degree in Integer
+    return int(degree)
+    
 
 def obu_process(broker,id):
     # Connect to MQTT broker
@@ -180,29 +191,15 @@ def obu_process(broker,id):
             conn.commit()
             conn.close()
         # send CAM messages
-        sendCam(client,obu)
+        sendCam(client,obu,coords[i])
         # send DENM messages if the OBU is an emergency vehicle and is in emergency mode
         if obu[6] in ["AMBULANCE", "FIRE", "POLICE"] and obu[7] == True:
-            sendDenm(client,obu)
+            sendDenm(client,obu,coords[i])
         i += 1
         time.sleep(0.25)
     print("OBU " + str(id) + " finished the path at " + str(datetime.now().time())[:8])
     client.loop_stop()
     client.disconnect()
-
-'''
-#TO DO!:
-#*Calculate the heading of each OBU base on the current coordinates (lat,long) and the previous
-#*Pass the heading value to the DENM 'semiMajorOrientation' field and the CAM 'heading' field
-#Method:
-
-geo = Geodesic.WGS84.Inverse(obu[1], obu[2], obu[3], obu[4])  #lat1 and long1 are the previous coordinates, lat2 and long2 are the current coordinates of the OBU 
-
-heading = geo[azi2] #in degrees clockwise
-distance = geo[s12] #in meters
-
-'''
-
 
 def obu_sim(brokers):
     processes = []
