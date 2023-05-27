@@ -136,6 +136,25 @@
                     icon: rsuIcon,
                 });
             }
+            addRSUCircles(rsu);
+
+            function addRSUCircles(rsu) {
+                var circleOptions = {
+                    strokeColor: "#FF0000",
+                    strokeOpacity: 0.8,
+                    strokeWeight: 2,
+                    fillColor: "#FF0000",
+                    fillOpacity: 0.35,
+                    map: map,
+                    clickable: false,
+                    radius: 200,  // 200 meters
+                };
+
+                for (var i = 0; i < rsu.length; i++) {
+                    var rsuCircle = new google.maps.Circle(circleOptions);
+                    rsuCircle.setCenter(new google.maps.LatLng(rsu[i][1], rsu[i][2]));
+                }
+            }
 
             // Function to update the content with the latest data
             function updateContent() {
@@ -150,8 +169,10 @@
                     document.getElementById("lastUpdate").innerHTML = "Last update: " + now.toLocaleString();
                 });
             }
+            
             // Periodically update the content every 500ms
             setInterval(updateContent, 500);
+
         }
     </script>
    
