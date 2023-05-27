@@ -9,6 +9,8 @@ from geographiclib.geodesic import Geodesic
 
 
 def on_connect(client, userdata, flags, rc):
+    # client.subscribe('vanetza/out/cam')
+    client.subscribe('vanetza/out/denm')
     if rc==0:
         print("OBU "+ str(client._client_id.decode("utf-8")) +": Connected OK")
     else:
@@ -179,8 +181,7 @@ def obu_process(broker,id):
     i = 0
     # until it reaches the end of the path
     while i < len(coords):
-        client.subscribe('vanetza/out/denm')
-        # client.subscribe('vanetza/out/cam')
+        # client.subscribe('vanetza/out/denm')        
         # get updated latitude and longitude of the OBU from the database
         conn = sqlite3.connect('obu.db')
         c = conn.cursor()
