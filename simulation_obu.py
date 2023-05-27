@@ -180,6 +180,7 @@ def obu_process(broker,id):
     # until it reaches the end of the path
     while i < len(coords):
         client.subscribe('vanetza/out/denm')
+        client.subscribe('vanetza/out/cam')
         # get updated latitude and longitude of the OBU from the database
         conn = sqlite3.connect('obu.db')
         c = conn.cursor()
