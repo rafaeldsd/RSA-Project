@@ -7,8 +7,7 @@ from db_obu import obu_db_create
 from geographiclib.geodesic import Geodesic
 
 
-
-def on_connect(client, userdata, flags, rc):
+def on_connect(client, userdata, flags, rc):    
     # client.subscribe('vanetza/out/cam')
     client.subscribe('vanetza/out/denm')
     if rc==0:
@@ -33,12 +32,11 @@ def on_message(client, userdata, msg):
     obu = c.fetchone()
     conn.close()
     
-    relative_heading = Geodesic.WGS84.Inverse(denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'], obu[1], obu[2])['azi2']
-        
+    relative_heading = int(round(Geodesic.WGS84.Inverse(denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'], obu[1], obu[2])['azi2'], 0))
+    
     # check what type of obu is
     # if it is a car and an emergency vehicle without an emergency
-    if obu[6] == "CAR" or (obu[6] in ["AMBULANCE", "FIRE", "POLICE"] and obu[7] == False):
-               
+    if obu[6] == "CAR" or (obu[6] in ["AMBULANCE", "FIRE", "POLICE"] and obu[7] == False):               
         
         # check if the car is within 200 meters of the OBU and if it is moving
         if get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]<200 and denm['fields']['denm']['situation']['informationQuality'] == 7:
@@ -62,20 +60,24 @@ def on_message(client, userdata, msg):
                     print("Unknown)")
                     vehicle = "Unknown vehicle"
                 #Check the direction of the ERV relative to a normal vehicle
-                f = open("messages/CAM_emergency.json", "r")
-                cam = json.load(f)        
-                ref_heading = int(round(relative_heading,0))-cam['heading']
-                print(cam['heading'])
-                if ref_heading in range(-30, 30):
+                client.subscribe('vanetza/out/cam')
+                cam=json.loads(m_decode)
+                #print(denm['fields']['denm']['management']['eventPosition']['positionConfidenceEllipse']['semiMajorOrientation'])    
+                ref_heading = relative_heading-int(denm['fields']['denm']['management']['eventPosition']['positionConfidenceEllipse']['semiMajorOrientation'])
+                #print(cam['fields']['cam']['heading'])
+                # cam['fields']['cam']['heading']
+                if ref_heading in range(-45, 45):
                     print("There is an emergency response veicle aproaching")
-                elif ref_heading in range(-150, 150):
+                elif ref_heading in range(-135, 135):
                     print("The emergency response veicle is heading away")
                 else:
-                    print("The emergency response veicle is not coming on this direction")     
+                    print("The emergency response veicle is not coming on this direction")
+                client.unsubscribe('vanetza/out/cam')     
                 # check if the car is within 50 meters of the OBU
                 if get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0] < 50:
-                    print("ATTENTION! "+ vehicle +" at " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]) + " meters in direction " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[1]) + "! Please take precautions immediately!")
-            
+                    print("ATTENTION! "+ vehicle +" at " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]) + " meters in direction " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[1]) + "! Please take precautions immediately! \n" )
+            # client.unsubscribe('vanetza/out/denm')
+
 def sendCam(client,obu,next_coord):
     if obu[6] == "AMBULANCE" or obu[6] == "FIRE" or obu[6] == "POLICE":
         f = open("messages/CAM_emergency.json", "r")
@@ -153,7 +155,7 @@ def erv_heading(lat1,lon1,lat2,lon2):
         degree += 360        
     # not valid degree
     if degree not in range(0,360):
-        degree = 361     
+        degree = 361  
     return degree
     
 
