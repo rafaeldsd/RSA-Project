@@ -32,7 +32,7 @@ def on_message(client, userdata, msg):
     obu = c.fetchone()
     conn.close()
     
-    relative_heading = int(round(Geodesic.WGS84.Inverse(denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'], obu[1], obu[2])['azi2'], 0))
+    relative_heading = vehicle_heading(denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'], obu[1], obu[2])
     
     # check what type of obu is
     # if it is a car and an emergency vehicle without an emergency
@@ -59,24 +59,19 @@ def on_message(client, userdata, msg):
                 else:
                     print("Unknown)")
                     vehicle = "Unknown vehicle"
+
                 #Check the direction of the ERV relative to a normal vehicle
-                client.subscribe('vanetza/out/cam')
-                cam=json.loads(m_decode)
-                #print(denm['fields']['denm']['management']['eventPosition']['positionConfidenceEllipse']['semiMajorOrientation'])    
                 ref_heading = relative_heading-int(denm['fields']['denm']['management']['eventPosition']['positionConfidenceEllipse']['semiMajorOrientation'])
-                #print(cam['fields']['cam']['heading'])
-                # cam['fields']['cam']['heading']
+                # Not sure if the following is correct
                 if ref_heading in range(-45, 45):
                     print("There is an emergency response veicle aproaching")
                 elif ref_heading in range(-135, 135):
                     print("The emergency response veicle is heading away")
                 else:
                     print("The emergency response veicle is not coming on this direction")
-                client.unsubscribe('vanetza/out/cam')     
                 # check if the car is within 50 meters of the OBU
                 if get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0] < 50:
                     print("ATTENTION! "+ vehicle +" at " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]) + " meters in direction " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[1]) + "! Please take precautions immediately! \n" )
-            # client.unsubscribe('vanetza/out/denm')
 
 def sendCam(client,obu,next_coord):
     if obu[6] == "AMBULANCE" or obu[6] == "FIRE" or obu[6] == "POLICE":
@@ -85,7 +80,7 @@ def sendCam(client,obu,next_coord):
         f = open("messages/CAM_car.json", "r")
     cam = json.load(f)
     cam['stationID'] = obu[0]
-    cam['heading'] = erv_heading(obu[1], obu[2], next_coord['latitude'],next_coord['longitude'])
+    cam['heading'] = vehicle_heading(obu[1], obu[2], next_coord['latitude'],next_coord['longitude'])
     cam['latitude'] = obu[1]
     cam['longitude'] = obu[2]    
     if obu[7] == True:
@@ -111,7 +106,7 @@ def sendDenm(client,obu,next_coord):
     denm['management']['actionID']['originatingStationID'] = obu[0]
     denm['management']['eventPosition']['latitude'] = obu[1]
     denm['management']['eventPosition']['longitude'] = obu[2]
-    denm['management']['eventPosition']['positionConfidenceEllipse']['semiMajorOrientation'] = erv_heading(obu[1], obu[2], next_coord['latitude'],next_coord['longitude'])
+    denm['management']['eventPosition']['positionConfidenceEllipse']['semiMajorOrientation'] = vehicle_heading(obu[1], obu[2], next_coord['latitude'],next_coord['longitude'])
     denm['management']['detectionTime'] = datetime.timestamp(datetime.now())
     denm['management']['referenceTime'] = datetime.timestamp(datetime.now())
     client.publish("vanetza/in/denm", json.dumps(denm))
@@ -146,7 +141,7 @@ def get_dis_dir(lat1, lon1, lat2, lon2):
 
     return round(distance,3), heading
 
-def erv_heading(lat1,lon1,lat2,lon2):
+def vehicle_heading(lat1,lon1,lat2,lon2):
     # only get values 0-360
     degree = Geodesic.WGS84.Inverse(lat1, lon1, lat2, lon2)['azi2']
     # cast degree to int
