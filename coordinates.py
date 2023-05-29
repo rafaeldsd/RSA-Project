@@ -8,7 +8,7 @@ from db_obu import obu_db_create
 def get_coords(lat1, lon1, lat2, lon2,id):   
     gmaps = googlemaps.Client(key='AIzaSyB5IcIzPvGKxfBjbzl6x1f_T_DdABVk-u4')
 
-    directions_result = gmaps.directions((lat1, lon1),(lat2, lon2),mode="walking",departure_time=datetime.datetime.now())
+    directions_result = gmaps.directions((lat1, lon1),(lat2, lon2),mode="driving",departure_time=datetime.datetime.now())
     coords_list = []
 
     for step in directions_result[0]['legs'][0]['steps']:
@@ -31,4 +31,5 @@ if __name__ == "__main__":
     # get the coordinates for each obu
     for obu in obus:
         get_coords(obu[1],obu[2],obu[3],obu[4],obu[0])
+        print("Obu "+str(obu[0])+" coordinates saved to file")
 

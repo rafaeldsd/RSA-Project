@@ -6,7 +6,7 @@ import sqlite3, math, time
 from db_obu import obu_db_create
 from geographiclib.geodesic import Geodesic
 
-
+stop = None
 def on_connect(client, userdata, flags, rc):    
     if rc==0:
         print("OBU "+ str(client._client_id.decode("utf-8")) +": Connected OK")
@@ -70,11 +70,7 @@ def on_message(client, userdata, msg):
                         print("ATTENTION! "+ vehicle +" at " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]) + " meters in direction " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[1]) + "! Please take precautions immediately! \n" )
                         
         if cam != None:
-            conn = sqlite3.connect('obu.db')
-            c = conn.cursor()
-            c.execute("UPDATE obu SET stop=? WHERE ip=?", (False, broker,))
-            conn.commit()
-            conn.close()
+            global stop
             # check if the car is within 200 meters of the OBU and if it is moving
             if get_dis_dir(obu[1], obu[2], cam['latitude'], cam['longitude'])[0]<200 and cam['speed'] > 0:
                 if 'emergencyContainer' in cam["specialVehicle"]:
@@ -83,16 +79,13 @@ def on_message(client, userdata, msg):
                         ref_heading = relative_heading-int(cam['heading'])
                         if ref_heading in range(-30, 30):
                             print("There is an emergency response veicle aproaching")
-                            # STOP THE CAR
-                            conn = sqlite3.connect('obu.db')
-                            c = conn.cursor()
-                            c.execute("UPDATE obu SET stop=? WHERE ip=?", (True, broker,))
-                            conn.commit()
-                            conn.close()
+                            stop = True
                         elif ref_heading in range(150,210) or ref_heading in range(-210,-150):
                             print("The emergency response veicle is heading away")
+                            stop = False
                         else:
                             print("The emergency response veicle is not coming on this direction")
+                            stop = False
 
 
 
@@ -215,7 +208,7 @@ def obu_process(broker,id):
             # No emergency vehicle
             if(obu[7] == False):
                 # Emergency vehicle nearby
-                if(obu[8] == True):
+                if(stop == True):
                     # send CAM messages
                     sendCam(client,obu,coords[i])
                 else:
