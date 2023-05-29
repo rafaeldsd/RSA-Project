@@ -68,7 +68,13 @@ def on_message(client, userdata, msg):
                     # check if the car is within 50 meters of the OBU
                     if get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0] < 50:
                         print("ATTENTION! "+ vehicle +" at " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]) + " meters in direction " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[1]) + "! Please take precautions immediately! \n" )
+                        
         if cam != None:
+            conn = sqlite3.connect('obu.db')
+            c = conn.cursor()
+            c.execute("UPDATE obu SET stop=? WHERE ip=?", (False, broker,))
+            conn.commit()
+            conn.close()
             # check if the car is within 200 meters of the OBU and if it is moving
             if get_dis_dir(obu[1], obu[2], cam['latitude'], cam['longitude'])[0]<200 and cam['speed'] > 0:
                 if 'emergencyContainer' in cam["specialVehicle"]:
@@ -77,6 +83,12 @@ def on_message(client, userdata, msg):
                         ref_heading = relative_heading-int(cam['heading'])
                         if ref_heading in range(-30, 30):
                             print("There is an emergency response veicle aproaching")
+                            # STOP THE CAR
+                            conn = sqlite3.connect('obu.db')
+                            c = conn.cursor()
+                            c.execute("UPDATE obu SET stop=? WHERE ip=?", (True, broker,))
+                            conn.commit()
+                            conn.close()
                         elif ref_heading in range(150,210) or ref_heading in range(-210,-150):
                             print("The emergency response veicle is heading away")
                         else:
@@ -198,21 +210,39 @@ def obu_process(broker,id):
         c.execute("SELECT * FROM obu WHERE id=?", (id,))
         obu = c.fetchone()
         conn.close()
-
+        # Obu has not finished the path yet
         if (obu[1] != obu[3]) or (obu[2] != obu[4]):
-            # update the OBU's position
-            conn = sqlite3.connect('obu.db')
-            c = conn.cursor()
-            c.execute("UPDATE obu SET ilatitude=?, ilongitude=? WHERE id=?", (coords[i]['latitude'], coords[i]['longitude'], id))
-            conn.commit()
-            conn.close()
-        # send CAM messages
-        sendCam(client,obu,coords[i])
-        # send DENM messages if the OBU is an emergency vehicle and is in emergency mode
-        if obu[6] in ["AMBULANCE", "FIRE", "POLICE"] and obu[7] == True:
-            sendDenm(client,obu,coords[i])
-        i += 1
-        time.sleep(0.25)
+            # No emergency vehicle
+            if(obu[7] == False):
+                # Emergency vehicle nearby
+                if(obu[8] == True):
+                    # send CAM messages
+                    sendCam(client,obu,coords[i])
+                else:
+                    # update the OBU's position
+                    conn = sqlite3.connect('obu.db')
+                    c = conn.cursor()
+                    c.execute("UPDATE obu SET ilatitude=?, ilongitude=? WHERE id=?", (coords[i]['latitude'], coords[i]['longitude'], id))
+                    conn.commit()
+                    conn.close() 
+                    # send CAM messages
+                    sendCam(client,obu,coords[i])
+                    i += 1
+            # Emergency vehicle
+            else:
+                # update the OBU's position
+                conn = sqlite3.connect('obu.db')
+                c = conn.cursor()
+                c.execute("UPDATE obu SET ilatitude=?, ilongitude=? WHERE id=?", (coords[i]['latitude'], coords[i]['longitude'], id))
+                conn.commit()
+                conn.close() 
+                # send CAM messages
+                sendCam(client,obu,coords[i])
+                # send DENM messages
+                sendDenm(client,obu,coords[i])
+                i += 1
+
+        time.sleep(1)
     print("OBU " + str(id) + " finished the path at " + str(datetime.now().time())[:8])
     client.loop_stop()
     client.disconnect()
