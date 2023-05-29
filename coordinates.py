@@ -3,11 +3,12 @@ import json
 import datetime
 from polyline import decode 
 import sqlite3
+from db_obu import obu_db_create
 
 def get_coords(lat1, lon1, lat2, lon2,id):   
     gmaps = googlemaps.Client(key='AIzaSyB5IcIzPvGKxfBjbzl6x1f_T_DdABVk-u4')
 
-    directions_result = gmaps.directions((lat1, lon1),(lat2, lon2),mode="driving",departure_time=datetime.datetime.now())
+    directions_result = gmaps.directions((lat1, lon1),(lat2, lon2),mode="walking",departure_time=datetime.datetime.now())
     coords_list = []
 
     for step in directions_result[0]['legs'][0]['steps']:
@@ -19,6 +20,8 @@ def get_coords(lat1, lon1, lat2, lon2,id):
         json.dump(coords_list, outfile)
 
 if __name__ == "__main__":
+    # create obu database
+    obu_db_create()
     # get obu data from db
     conn = sqlite3.connect('obu.db')
     c = conn.cursor()

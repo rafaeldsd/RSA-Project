@@ -120,13 +120,17 @@
                 position: new google.maps.LatLng(40.637076, -8.653228),
                 map: map,
                 icon: traffic_lightsIcon,
-            });                
+            });          
+            
+            // Add a global variable to store the RSU circles
+            var rsuCircles = [];
 
             // get the rsu variable from app.py
             var rsu = {{ rsu|tojson }};
 
             // get the obu variable from app.py
             var obu = {{ obu|tojson }};
+            console.log(obu);
             
             // loop through the list and add markers
             for (var i = 0; i < rsu.length; i++) {
@@ -136,14 +140,17 @@
                     icon: rsuIcon,
                 });
             }
-            addRSUCircles(rsu);
+            addRSUCircles(rsu,obu);
 
-            function addRSUCircles(rsu) {
+            function addRSUCircles(rsu, obu) {
+                // Remove existing circles from the map
+                for (var i = 0; i < rsuCircles.length; i++) {
+                    rsuCircles[i].setMap(null);
+                }
+                rsuCircles = [];
+
                 var circleOptions = {
-                    strokeColor: "#FF0000",
-                    strokeOpacity: 0.8,
                     strokeWeight: 2,
-                    fillColor: "#FF0000",
                     fillOpacity: 0.35,
                     map: map,
                     clickable: false,
@@ -151,22 +158,48 @@
                 };
 
                 for (var i = 0; i < rsu.length; i++) {
-                    var rsuCircle = new google.maps.Circle(circleOptions);
+                    var circleColor = "#FF0000";  // Red color by default
+                    // Check if any OBU markers are inside the circle
+                    for (var j = 0; j < obu.length; j++) {
+                        var obuPosition = new google.maps.LatLng(obu[j][0], obu[j][1]);
+                        var rsuPosition = new google.maps.LatLng(rsu[i][1], rsu[i][2]);
+                        
+                        // Calculate the distance between OBU and RSU
+                        var distance = google.maps.geometry.spherical.computeDistanceBetween(obuPosition, rsuPosition);
+                        
+                        if (distance <= circleOptions.radius) {
+                            circleColor = "#00FF00";  // Green color if OBU is inside the circle
+                            break;  // No need to check further OBUs for this RSU
+                        }
+                    }
+                    // Set circle options with the color determined
+                    var rsuCircle = new google.maps.Circle(Object.assign({}, circleOptions, {
+                        strokeColor: circleColor,
+                        fillColor: circleColor
+                    }));
                     rsuCircle.setCenter(new google.maps.LatLng(rsu[i][1], rsu[i][2]));
+
+                    // Add the circle to the array
+                    rsuCircles.push(rsuCircle);
                 }
             }
 
             // Function to update the content with the latest data
             function updateContent() {
                 $.get("/get_data", function(data) {
-                    ambulance.setPosition(new google.maps.LatLng(data.obu[0][1], data.obu[0][2]));
-                    cars.setPosition(new google.maps.LatLng(data.obu[1][1], data.obu[1][2]));
-                    police.setPosition(new google.maps.LatLng(data.obu[2][1], data.obu[2][2]));
-                    firefighters.setPosition(new google.maps.LatLng(data.obu[3][1], data.obu[3][2]));
+                    // Update the RSU circles
+                    addRSUCircles(data.rsu, data.obu);
+
+                    ambulance.setPosition(new google.maps.LatLng(data.obu[0][0], data.obu[0][1]));
+                    cars.setPosition(new google.maps.LatLng(data.obu[1][0], data.obu[1][1]));
+                    police.setPosition(new google.maps.LatLng(data.obu[2][0], data.obu[2][1]));
+                    firefighters.setPosition(new google.maps.LatLng(data.obu[3][0], data.obu[3][1]));
                     
                     // Update the last update time
                     var now = new Date();
                     document.getElementById("lastUpdate").innerHTML = "Last update: " + now.toLocaleString();
+                    
+                    
                 });
             }
             
@@ -176,7 +209,7 @@
         }
     </script>
    
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDcLG_2KgktdQJXLaeyQZHJzmvcSjNwoPM&callback=myMap"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDcLG_2KgktdQJXLaeyQZHJzmvcSjNwoPM&callback=myMap&libraries=geometry"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 
