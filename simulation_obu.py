@@ -250,7 +250,7 @@ def obu_process(broker,id):
                 sendDenm(client,obu,coords[i])
                 i += 1
 
-        time.sleep(0.75)
+        time.sleep(0.7)
     print("OBU " + str(id) + " finished the path at " + str(datetime.now().time())[:8])
     client.loop_stop()
     client.disconnect()

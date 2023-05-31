@@ -71,12 +71,11 @@ def on_message(client, userdata, msg):
         # check if the car is within 200 meters of the RSU and if it is moving (CAM)
         if cam is not None:
             if get_dis_dir(rsu[1], rsu[2], cam['latitude'], cam['longitude'])[0]<200 and cam['speed']>0:
-                
                 #check if exists a ["specialVehicle"]["emergencyContainer"] in the cam message
                 if 'emergencyContainer' in cam["specialVehicle"]:
                     # check if it is emergency vehicle 
-                    if cam["specialVehicle"]["emergencyContainer"]["lightBarSirenInUse"]["lightBarActivated"] == True and cam["specialVehicle"]["emergencyContainer"]["lightBarSirenInUse"]["sirenActivated"] == True:
-                        street_headdin_one_way, street_headdin_the_other_way = street_headding ()                        
+                    if cam["specialVehicle"]["emergencyContainer"]["lightBarSirenInUse"]["lightBarActivated"] == True and cam["specialVehicle"]["emergencyContainer"]["lightBarSirenInUse"]["sirenActivated"] == True:                        
+                        street_headdin_one_way, street_headdin_the_other_way = street_headding()       
                         if int(cam['heading']) in range (street_headdin_one_way + 15, street_headdin_one_way - 15) or int(cam['heading']) in range (street_headdin_the_other_way + 15, street_headdin_the_other_way - 15):
                             relative_heading = vehicle_heading(cam['latitude'], cam['longitude'], rsu[2], rsu[3])
                             if dif_heading(relative_heading,int(cam['heading'])) < 95:
