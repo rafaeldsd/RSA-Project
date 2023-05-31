@@ -67,20 +67,23 @@ def on_message(client, userdata, msg):
     rsu = c.fetchone()
     conn.close()
     
-    if rsu[4] == "TRAFFICLIGHT_RSU":
-        # check if the car is within 200 meters of the RSU and if it is moving (CAM)
+    if rsu[4] == "TRAFFICLIGHT_RSU":        
         if cam is not None:
-            if get_dis_dir(rsu[1], rsu[2], cam['latitude'], cam['longitude'])[0]<200 and cam['speed']>0:
-                #check if exists a ["specialVehicle"]["emergencyContainer"] in the cam message
-                if 'emergencyContainer' in cam["specialVehicle"]:
+            #check if exists a ["specialVehicle"]["emergencyContainer"] in the cam message
+            if 'emergencyContainer' in cam["specialVehicle"]:
+                # check if the car is within 200 meters of the RSU and if it is moving (CAM)                
+                if get_dis_dir(rsu[1], rsu[2], cam['latitude'], cam['longitude'])[0]<250 and cam['speed']>0:
                     # check if it is emergency vehicle 
                     if cam["specialVehicle"]["emergencyContainer"]["lightBarSirenInUse"]["lightBarActivated"] == True and cam["specialVehicle"]["emergencyContainer"]["lightBarSirenInUse"]["sirenActivated"] == True:                        
-                        street_headdin_one_way, street_headdin_the_other_way = street_headding()       
-                        if int(cam['heading']) in range (street_headdin_one_way + 15, street_headdin_one_way - 15) or int(cam['heading']) in range (street_headdin_the_other_way + 15, street_headdin_the_other_way - 15):
-                            relative_heading = vehicle_heading(cam['latitude'], cam['longitude'], rsu[2], rsu[3])
-                            if dif_heading(relative_heading,int(cam['heading'])) < 95:
-                                print("RSU " + str(client._client_id.decode("utf-8")) + "(Traffic light): ")
-                                print ("The traffic light is turning green for traffic circulating on the ERV direction")
+                        street_headdin_one_way, street_headdin_the_other_way = street_headding()
+                        # verify if ERV is on the street headding with 10 degree tolerance eather way 
+                        if int(cam['heading']) in range((street_headdin_one_way - 10), (street_headdin_one_way + 10)) or int(cam['heading']) in range ((street_headdin_the_other_way - 10), (street_headdin_the_other_way + 10)):
+                            heading = vehicle_heading(cam['latitude'], cam['longitude'], rsu[1], rsu[2])
+                            # compare the headding of the ERV in relation to the traffic light.
+                            # if the value is > 95 degrees, it means the ERV has already passed and the protocol comes back to normal
+                            if dif_heading(heading,int(cam['heading'])) <= 95:
+                                print ("\n RSU " + str(client._client_id.decode("utf-8")) + " (Traffic light):")
+                                print ('\033[93m' + "\t-The traffic light is turning green for ERV and traffic ahead \n" + '\033[0m')
                     
         
         # check if the car is within 200 meters of the RSU and if it is moving (DENM)
@@ -100,7 +103,7 @@ def on_message(client, userdata, msg):
                 if 'emergencyContainer' in cam["specialVehicle"]:
                     # check if it is emergency vehicle 
                     if cam["specialVehicle"]["emergencyContainer"]["lightBarSirenInUse"]["lightBarActivated"] == True and cam["specialVehicle"]["emergencyContainer"]["lightBarSirenInUse"]["sirenActivated"] == True:
-                        print("(Special vehicle in emergency)")
+                        print('\033[91m' + "(Special vehicle in emergency)" + '\033[0m')
                     else:
                         print("(Special vehicle not in emergency)")
                 else:
