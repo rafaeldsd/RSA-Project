@@ -87,25 +87,25 @@
             };
 
             cars = new google.maps.Marker({
-                position: new google.maps.LatLng(40.64091,-8.659),
+                position: new google.maps.LatLng(0,0),
                 map: map,
                 icon: carIcon,
             }); 
 
             ambulance = new google.maps.Marker({
-                position: new google.maps.LatLng(40.63524,-8.65542),
+                position: new google.maps.LatLng(0,0),
                 map: map,
                 icon: ambulanceIcon,
             });
 
             police = new google.maps.Marker({
-                position: new google.maps.LatLng(40.6305, -8.65402),
+                position: new google.maps.LatLng(0, 0),
                 map: map,
                 icon: policeIcon,
             });
 
             firefighters = new google.maps.Marker({
-                position: new google.maps.LatLng(40.6406, -8.64841),
+                position: new google.maps.LatLng(0, 0),
                 map: map,
                 icon: firefightersIcon,
             });
@@ -115,12 +115,7 @@
                 map: map,
                 icon: hospitalIcon,
             });
-
-            traffic_lights = new google.maps.Marker({
-                position: new google.maps.LatLng(40.637076, -8.653228),
-                map: map,
-                icon: traffic_lightsIcon,
-            });          
+          
             
             // Add a global variable to store the RSU circles
             var rsuCircles = [];
@@ -130,16 +125,26 @@
 
             // get the obu variable from app.py
             var obu = {{ obu|tojson }};
-            console.log(obu);
             
             // loop through the list and add markers
             for (var i = 0; i < rsu.length; i++) {
-                var rsuMarker = new google.maps.Marker({
-                    position: new google.maps.LatLng(rsu[i][1], rsu[i][2]),
-                    map: map,
-                    icon: rsuIcon,
-                });
+                // check if the rsu[i][4]=="ANTENNA_RSU"
+                if (rsu[i][4]=="ANTENNA_RSU"){
+                    var rsuMarker = new google.maps.Marker({
+                        position: new google.maps.LatLng(rsu[i][1], rsu[i][2]),
+                        map: map,
+                        icon: rsuIcon,
+                    });
+                }
+                else{
+                    var traffic_lights = new google.maps.Marker({              
+                        position: new google.maps.LatLng(rsu[i][1], rsu[i][2]),
+                        map: map,
+                        icon: traffic_lightsIcon,
+                    });
+                }             
             }
+            
             addRSUCircles(rsu,obu);
 
             function addRSUCircles(rsu, obu) {

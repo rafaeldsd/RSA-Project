@@ -67,52 +67,36 @@ def on_message(client, userdata, msg):
     rsu = c.fetchone()
     conn.close()
     
-    if rsu[5] == "TRAFFICLIGHT_RSU":
+    if rsu[4] == "TRAFFICLIGHT_RSU":
         # check if the car is within 200 meters of the RSU and if it is moving (CAM)
         if cam is not None:
             if get_dis_dir(rsu[1], rsu[2], cam['latitude'], cam['longitude'])[0]<200 and cam['speed']>0:
-                print("RSU " + str(client._client_id.decode("utf-8")) + " detected a CAM: id(" + str(cam['stationID']) + "), speed(" + str(cam['speed']) + "), distance(" + str(get_dis_dir(rsu[1], rsu[2], cam['latitude'], cam['longitude'])[0]) + "m) and direction(" + str(get_dis_dir(rsu[1], rsu[2], cam['latitude'], cam['longitude'])[1]) + ")", end=" ")
+                
                 #check if exists a ["specialVehicle"]["emergencyContainer"] in the cam message
                 if 'emergencyContainer' in cam["specialVehicle"]:
                     # check if it is emergency vehicle 
                     if cam["specialVehicle"]["emergencyContainer"]["lightBarSirenInUse"]["lightBarActivated"] == True and cam["specialVehicle"]["emergencyContainer"]["lightBarSirenInUse"]["sirenActivated"] == True:
-                        print("(Special vehicle in emergency)")
                         street_headdin_one_way, street_headdin_the_other_way = street_headding ()                        
                         if int(cam['heading']) in range (street_headdin_one_way + 15, street_headdin_one_way - 15) or int(cam['heading']) in range (street_headdin_the_other_way + 15, street_headdin_the_other_way - 15):
                             relative_heading = vehicle_heading(cam['latitude'], cam['longitude'], rsu[2], rsu[3])
                             if dif_heading(relative_heading,int(cam['heading'])) < 95:
+                                print("RSU " + str(client._client_id.decode("utf-8")) + "(Traffic light): ")
                                 print ("The traffic light is turning green for traffic circulating on the ERV direction")
-                    else:
-                        print("(Special vehicle not in emergency)")
-                else:
-                    print("(Normal vehicle)")
+                    
         
         # check if the car is within 200 meters of the RSU and if it is moving (DENM)
         if denm is not None:
             if get_dis_dir(rsu[1], rsu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]<200 and denm['fields']['denm']['situation']['informationQuality'] == 7:
-                print("RSU " + str(client._client_id.decode("utf-8")) + " detected a DENM: id(" + str(denm['fields']['denm']['management']['actionID']["originatingStationID"]) + "), informationQuality(" + str(denm['fields']['denm']['situation']['informationQuality']) + ")", end=" ")
-                # check if it is emergency vehicle
-                if denm['fields']['denm']['situation']['eventType']['causeCode'] == 4:
-                    print("and Emergency vehicle (", end="")
-                    if denm['fields']['denm']['situation']['eventType']['subCauseCode'] == 2:
-                        print("Ambulance)")
-                    elif denm['fields']['denm']['situation']['eventType']['subCauseCode'] == 3:
-                        print("Fire truck)")
-                    elif denm['fields']['denm']['situation']['eventType']['subCauseCode'] == 4:
-                        print("Police car)")
-                    else:
-                        print("Unknown)")
-                else:
-                    print("and unknown causeCode(" + str(denm['fields']['denm']['situation']['eventType']['causeCode']) + ")")
                 send_denm(denm,client)
     
     
     
-    if rsu[5] == "ANTENNA_RSU":
+    if rsu[4] == "ANTENNA_RSU":
         # check if the car is within 50 meters of the RSU and if it is moving (CAM)
         if cam is not None:
             if get_dis_dir(rsu[1], rsu[2], cam['latitude'], cam['longitude'])[0]<200 and cam['speed']>0:
-                print("RSU " + str(client._client_id.decode("utf-8")) + " detected a CAM: id(" + str(cam['stationID']) + "), speed(" + str(cam['speed']) + "), distance(" + str(get_dis_dir(rsu[1], rsu[2], cam['latitude'], cam['longitude'])[0]) + "m) and direction(" + str(get_dis_dir(rsu[1], rsu[2], cam['latitude'], cam['longitude'])[1]) + ")", end=" ")
+                print("RSU " + str(client._client_id.decode("utf-8")) + ": ")
+                print("\t-Detected a CAM: id(" + str(cam['stationID']) + "), speed(" + str(cam['speed']) + "), distance(" + str(get_dis_dir(rsu[1], rsu[2], cam['latitude'], cam['longitude'])[0]) + "m) and direction(" + str(get_dis_dir(rsu[1], rsu[2], cam['latitude'], cam['longitude'])[1]) + ")", end=" ")
                 #check if exists a ["specialVehicle"]["emergencyContainer"] in the cam message
                 if 'emergencyContainer' in cam["specialVehicle"]:
                     # check if it is emergency vehicle 
@@ -126,7 +110,7 @@ def on_message(client, userdata, msg):
         # check if the car is within 200 meters of the RSU and if it is moving (DENM)
         if denm is not None:
             if get_dis_dir(rsu[1], rsu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]<200 and denm['fields']['denm']['situation']['informationQuality'] == 7:
-                print("RSU " + str(client._client_id.decode("utf-8")) + " detected a DENM: id(" + str(denm['fields']['denm']['management']['actionID']["originatingStationID"]) + "), informationQuality(" + str(denm['fields']['denm']['situation']['informationQuality']) + ")", end=" ")
+                print("\t-Detected a DENM: id(" + str(denm['fields']['denm']['management']['actionID']["originatingStationID"]) + "), informationQuality(" + str(denm['fields']['denm']['situation']['informationQuality']) + ")", end=" ")
                 # check if it is emergency vehicle
                 if denm['fields']['denm']['situation']['eventType']['causeCode'] == 4:
                     print("and Emergency vehicle (", end="")

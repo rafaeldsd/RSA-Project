@@ -54,48 +54,51 @@ def on_message(client, userdata, msg):
         if denm != None:
             # check if the car is within 200 meters of the OBU and if it is moving
             if get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]<200 and denm['fields']['denm']['situation']['informationQuality'] == 7:
-                print("OBU " + str(client._client_id.decode("utf-8")) + " detected a DENM: id(" + str(denm['fields']['denm']['management']['actionID']['originatingStationID']) + "), informationQuality(" + str(denm['fields']['denm']['situation']['informationQuality']) + ")", end=" ")
+                print("Other information: ")
+                print("\t-Detected a DENM: id(" + str(denm['fields']['denm']['management']['actionID']['originatingStationID']) + "), informationQuality(" + str(denm['fields']['denm']['situation']['informationQuality']) + ")", end=" ")
                 # check if it is emergency vehicle
                 if denm['fields']['denm']['situation']['eventType']['causeCode'] == 4:
                     print("and Emergency vehicle (", end="")
                     if denm['fields']['denm']['situation']['eventType']['subCauseCode'] == 2:
                         vehicle = "Ambulance"
                         print("Ambulance)")
-                        print("An ambulance is " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]) + " meters away in direction " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[1]) + ". Please take precautions!")
+                        print("\t-An ambulance is " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]) + " meters away in direction " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[1]) + ". Please take precautions!")
                     elif denm['fields']['denm']['situation']['eventType']['subCauseCode'] == 3:
                         vehicle = "Fire truck"
                         print("Fire truck)")
-                        print("A fire truck is " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]) + " meters away in direction " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[1]) + ". Please take precautions!")
+                        print("\t-A fire truck is " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]) + " meters away in direction " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[1]) + ". Please take precautions!")
                     elif denm['fields']['denm']['situation']['eventType']['subCauseCode'] == 4:
                         vehicle = "Police car"
                         print("Police car)")
-                        print("A police car is " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]) + " meters away in direction " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[1]) + ". Please take precautions!")
+                        print("\t-A police car is " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]) + " meters away in direction " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[1]) + ". Please take precautions!")
                     else:
                         print("Unknown)")
                         vehicle = "Unknown vehicle"
 
                     # check if the car is within 50 meters of the OBU
                     if get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0] < 50:
-                        print("ATTENTION! "+ vehicle +" at " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]) + " meters in direction " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[1]) + "! Please take precautions immediately! \n" )
-                        
+                        print("\t-ATTENTION! "+ vehicle +" at " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]) + " meters in direction " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[1]) + "! Please take precautions immediately!" )
+                    print("\n")
         if cam != None:
             global stop
             # check if the car is within 200 meters of the OBU and if it is moving
             if get_dis_dir(obu[1], obu[2], cam['latitude'], cam['longitude'])[0]<200 and cam['speed'] > 0:
                 if 'emergencyContainer' in cam["specialVehicle"]:
                     if cam["specialVehicle"]["emergencyContainer"]["lightBarSirenInUse"]["lightBarActivated"] == True and cam["specialVehicle"]["emergencyContainer"]["lightBarSirenInUse"]["sirenActivated"] == True:
+                        print("OBU " + str(client._client_id.decode("utf-8")) + ": " )
                         relative_heading = vehicle_heading(cam['latitude'], cam['longitude'], obu[1], obu[2])
+                        print("Displaying emergency vehicle information: ")
                         if get_dis_dir(obu[1], obu[2], cam['latitude'], cam['longitude'])[0]<10:
-                            print("The emergency response veicle is next to this veícle")
+                            print("\t -The emergency response veicle is next to this veícle")
                             stop = True
                         elif dif_heading(relative_heading,int(cam['heading'])) < 60:
-                            print("There is an emergency response veicle aproaching")
+                            print("\t-There is an emergency response veicle aproaching")
                             stop = True
                         elif dif_heading(relative_heading,int(cam['heading'])) > 130:
-                            print("The emergency response veicle is heading away")
+                            print("\t-The emergency response veicle is heading away")
                             stop = False
                         else:
-                            print("The emergency response veicle is not coming on this direction")
+                            print("\t-The emergency response veicle is not coming on this direction")
                             stop = False
 
 
@@ -205,6 +208,7 @@ def obu_process(broker,id):
     with open('paths/coords'+str(id)+'.json') as json_file:
         coords = json.load(json_file)
     i = 0
+    print("\n")
     # until it reaches the end of the path
     while i < len(coords): 
 
@@ -246,7 +250,7 @@ def obu_process(broker,id):
                 sendDenm(client,obu,coords[i])
                 i += 1
 
-        time.sleep(1)
+        time.sleep(0.75)
     print("OBU " + str(id) + " finished the path at " + str(datetime.now().time())[:8])
     client.loop_stop()
     client.disconnect()
