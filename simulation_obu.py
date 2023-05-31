@@ -16,6 +16,15 @@ def on_connect(client, userdata, flags, rc):
 def on_disconnect(client, userdata, flags, rc=0):
     print("OBU "+ str(client._client_id.decode("utf-8")) +": Disconnected result code "+str(rc))
 
+def dif_heading (relative_heading, evr_heading):
+    if relative_heading >= evr_heading:
+        ref_heading=relative_heading-evr_heading
+    else:
+        ref_heading=evr_heading-relative_heading
+    if ref_heading>180:
+        ref_heading=360-ref_heading        
+    return ref_heading    
+
 def on_message(client, userdata, msg):  
     topic=msg.topic
     m_decode=str(msg.payload.decode("utf-8","ignore"))
@@ -76,11 +85,13 @@ def on_message(client, userdata, msg):
                 if 'emergencyContainer' in cam["specialVehicle"]:
                     if cam["specialVehicle"]["emergencyContainer"]["lightBarSirenInUse"]["lightBarActivated"] == True and cam["specialVehicle"]["emergencyContainer"]["lightBarSirenInUse"]["sirenActivated"] == True:
                         relative_heading = vehicle_heading(cam['latitude'], cam['longitude'], obu[1], obu[2])
-                        ref_heading = relative_heading-int(cam['heading'])
-                        if ref_heading in range(-30, 30):
+                        if get_dis_dir(obu[1], obu[2], cam['latitude'], cam['longitude'])[0]<10:
+                            print("The emergency response veicle is next to this veícle")
+                            stop = True
+                        elif dif_heading(relative_heading,int(cam['heading'])) < 60:
                             print("There is an emergency response veicle aproaching")
                             stop = True
-                        elif ref_heading in range(150,210) or ref_heading in range(-210,-150):
+                        elif dif_heading(relative_heading,int(cam['heading'])) > 130:
                             print("The emergency response veicle is heading away")
                             stop = False
                         else:
