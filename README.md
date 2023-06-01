@@ -2,7 +2,7 @@
 
 ## Introduction
 
-We are proposing a solution to address the significant risks faced by emergency services while responding to emergencies, especially in highly congested urban areas. The project aims to provide real-time notifications about the location and status of emergency vehicles to nearby vehicles, helping drivers quickly and safely clear the path of the emergency vehicle. This, in turn, reduces the risk of accidents and improves response times.
+A solution to address the significant risks faced by emergency services while responding to emergencies, especially in highly congested urban areas. The project aims to provide real-time notifications about the location and status of emergency vehicles to nearby vehicles, helping drivers quickly and safely clear the path of the emergency vehicle. This, in turn, reduces the risk of accidents and improves response times.
 
 ## Project Overview
 
