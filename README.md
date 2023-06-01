@@ -61,7 +61,7 @@ To modify the routes in the database, follow these steps:
 
 5. Run the `coordinates.py` script to update the database with the modified routes. Use the following command:
 ```bash
-python coordinates.py
+python3 coordinates.py
 ```
 
 ## References
