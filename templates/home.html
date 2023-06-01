@@ -18,6 +18,7 @@
     <h1>Emergency Vehicle Notification System</h1>
     <p class="description">This system helps to track the location of emergency vehicles in real-time and notify nearby cars and traffic lights to help drivers quickly and safely move out of the way of the emergency vehicle.</p>
     <div id="googleMap"></div>
+    <div id="messageContainer"></div>
     
     <div class='my-legend'>
         <div class='legend-title'>Legend</div>
@@ -200,11 +201,33 @@
                     police.setPosition(new google.maps.LatLng(data.obu[2][0], data.obu[2][1]));
                     firefighters.setPosition(new google.maps.LatLng(data.obu[3][0], data.obu[3][1]));
                     
+                    // Check if there is any information
+                    var hasInformation = data.obu.length > 0;
+
                     // Update the last update time
                     var now = new Date();
                     document.getElementById("lastUpdate").innerHTML = "Last update: " + now.toLocaleString();
                     
-                    
+                    // Update the message container
+                    var messageContainer = document.getElementById("messageContainer");
+                    messageContainer.innerHTML = ""; // Clear the container before adding new messages
+                    if (hasInformation) {
+                        messageContainer.style.display = "block";
+                    } else {
+                        messageContainer.style.display = "none";
+                    }
+
+                    // Loop through each OBU and add its message to the container
+                    for (var i = 0; i < data.obu.length; i++) {
+                        var obuMessage = ("Latitude: " + data.obu[i][0] + ", Longitude: " + data.obu[i][1]);
+
+                        // Create a new div element for the OBU message
+                        var obuMessageDiv = document.createElement("div");
+                        obuMessageDiv.textContent = "OBU " + (i+1) + ": " + obuMessage;
+
+                        // Append the OBU message div to the container
+                        messageContainer.appendChild(obuMessageDiv);
+                    }
                 });
             }
             
