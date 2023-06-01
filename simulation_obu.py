@@ -77,7 +77,7 @@ def on_message(client, userdata, msg):
 
                     # check if the car is within 50 meters of the OBU
                     if get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0] < 50:
-                        print("\t-ATTENTION! "+ vehicle +" at " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]) + " meters in direction " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[1]) + "! Please take precautions immediately!" )
+                        print('\033[91m' + "\t-ATTENTION! "+ vehicle +" at " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]) + " meters in direction " + str(get_dis_dir(obu[1], obu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[1]) + "! Please take precautions immediately!" + '\033[0m')
                     print("\n")
         if cam != None:
             global stop
@@ -89,10 +89,10 @@ def on_message(client, userdata, msg):
                         relative_heading = vehicle_heading(cam['latitude'], cam['longitude'], obu[1], obu[2])
                         print("Displaying emergency vehicle information: ")
                         if get_dis_dir(obu[1], obu[2], cam['latitude'], cam['longitude'])[0]<10:
-                            print("\t -The emergency response veicle is next to this veícle")
+                            print('\033[91m' + "\t -The emergency response veicle is next to this veícle" + '\033[0m')
                             stop = True
                         elif dif_heading(relative_heading,int(cam['heading'])) < 60:
-                            print("\t-There is an emergency response veicle aproaching")
+                            print('\033[93m' + "\t-There is an emergency response veicle aproaching" + '\033[0m')
                             stop = True
                         elif dif_heading(relative_heading,int(cam['heading'])) > 130:
                             print("\t-The emergency response veicle is heading away")
