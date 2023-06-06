@@ -16,22 +16,35 @@
         </div>
     </header>
     <h1>Emergency Vehicle Notification System</h1>
-    <p class="description">This system helps to track the location of emergency vehicles in real-time and notify nearby cars and traffic lights to help drivers quickly and safely move out of the way of the emergency vehicle.</p>
-    <div id="googleMap"></div>
-    <div id="messageContainer"></div>
-    
-    <div class='my-legend'>
-        <div class='legend-title'>Legend</div>
-        <div class='legend-scale'>
-          <ul class='legend-labels'>
-            <li><img src="/static/images/car.png" alt="Car" style="width:auto;height:auto;">Car</li>
-            <li><img src="/static/images/ambulance.png" alt="Ambulance" style="width:auto;height:auto;">Ambulance</li>
-            <li><img src="/static/images/police.png" alt="Police Car" style="width:auto;height:auto;">Police Car</li>
-            <li><img src="/static/images/fire.png" alt="Firefighters" style="width:auto;height:auto;">Firefighters</li>
-            <li><img src="/static/images/hospital-building.png" alt="Hospital" style="width:auto;height:auto;">Hospital</li>
-            <li><img src="/static/images/trafficlight.png" alt="Traffic Lights" style="width:auto;height:auto;">Traffic Lights</li>
-            <li><img src="/static/images/rsu.png" alt="RSU" style="width: 30px; height: 30px;">RSU</li>
-          </ul>
+    <div class="container">
+        <div class="left-container">
+            <div class='my-legend'>
+                <div class='legend-title'>Cooperative Awareness Message</div>
+            </div>
+            <div id="messageContainerCam"></div>
+            <div class='my-legend'>
+                <div class='legend-title'>Decentralized Environmental Notification Message</div>
+            </div>
+            <div id="messageContainerDenm"></div>
+        </div>
+        <div class="middle-container">
+            <div id="googleMap"></div>
+        </div>
+        <div class="right-container">
+            <div class='my-legend'>
+                <div class='legend-title'>Legend</div>
+                <div class='legend-scale'>
+                    <ul class='legend-labels'>
+                        <li><img src="/static/images/car.png" alt="Car" ><span>Car</span></li>
+                        <li><img src="/static/images/ambulance.png" alt="Ambulance"><span>Ambulance</span></li>
+                        <li><img src="/static/images/police.png" alt="Police Car"><span>Police Car</span></li>
+                        <li><img src="/static/images/fire.png" alt="Firefighters"><span>Firefighters</span></li>
+                        <li><img src="/static/images/hospital-building.png" alt="Hospital"><span>Hospital</span></li>
+                        <li><img src="/static/images/rsu.png" alt="RSU" style="width: 35px; height: 35px;"><span>RSU</span></li>
+                        <li><img src="/static/images/trafficlight.png" alt="Traffic Lights" style="width:45px;height:35px;"><span>Traffic Lights</span></li>
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>    
         
@@ -79,7 +92,7 @@
 
             var traffic_lightsIcon = {
             url: "/static/images/trafficlight.png",
-            scaledSize: new google.maps.Size(40, 40),
+            scaledSize: new google.maps.Size(40, 25),
             };
             
             var rsuIcon = {
@@ -124,8 +137,12 @@
             // get the rsu variable from app.py
             var rsu = {{ rsu|tojson }};
 
-            // get the obu variable from app.py
-            var obu = {{ obu|tojson }};
+            // get the cam variable from app.py
+            var cam = {{ cam|tojson }};
+
+            // get the denm variable from app.py
+            var denm = {{ denm|tojson }};
+
             
             // loop through the list and add markers
             for (var i = 0; i < rsu.length; i++) {
@@ -146,9 +163,9 @@
                 }             
             }
             
-            addRSUCircles(rsu,obu);
+            addRSUCircles(rsu,denm);
 
-            function addRSUCircles(rsu, obu) {
+            function addRSUCircles(rsu, denm) {
                 // Remove existing circles from the map
                 for (var i = 0; i < rsuCircles.length; i++) {
                     rsuCircles[i].setMap(null);
@@ -165,13 +182,13 @@
 
                 for (var i = 0; i < rsu.length; i++) {
                     var circleColor = "#FF0000";  // Red color by default
-                    // Check if any OBU markers are inside the circle
-                    for (var j = 0; j < obu.length; j++) {
-                        var obuPosition = new google.maps.LatLng(obu[j][0], obu[j][1]);
-                        var rsuPosition = new google.maps.LatLng(rsu[i][1], rsu[i][2]);
+                    // Check if there is a denm message inside the circle
+                    for (var j = 0; j < denm.length; j++) {
+                        var denmPosition = new google.maps.LatLng(denm[j][0], denm[j][1]);
+                        var rsuPosition = new google.maps.LatLng(rsu[i][1], rsu[i][2]);    
                         
                         // Calculate the distance between OBU and RSU
-                        var distance = google.maps.geometry.spherical.computeDistanceBetween(obuPosition, rsuPosition);
+                        var distance = google.maps.geometry.spherical.computeDistanceBetween(denmPosition, rsuPosition);
                         
                         if (distance <= circleOptions.radius) {
                             circleColor = "#00FF00";  // Green color if OBU is inside the circle
@@ -194,40 +211,64 @@
             function updateContent() {
                 $.get("/get_data", function(data) {
                     // Update the RSU circles
-                    addRSUCircles(data.rsu, data.obu);
+                    addRSUCircles(data.rsu, data.denm);
 
-                    ambulance.setPosition(new google.maps.LatLng(data.obu[0][0], data.obu[0][1]));
-                    cars.setPosition(new google.maps.LatLng(data.obu[1][0], data.obu[1][1]));
-                    police.setPosition(new google.maps.LatLng(data.obu[2][0], data.obu[2][1]));
-                    firefighters.setPosition(new google.maps.LatLng(data.obu[3][0], data.obu[3][1]));
+                    ambulance.setPosition(new google.maps.LatLng(data.cam[0][0], data.cam[0][1]));
+                    cars.setPosition(new google.maps.LatLng(data.cam[1][0], data.cam[1][1]));
+                    police.setPosition(new google.maps.LatLng(data.cam[2][0], data.cam[2][1]));
+                    firefighters.setPosition(new google.maps.LatLng(data.cam[3][0], data.cam[3][1]));
                     
                     // Check if there is any information
-                    var hasInformation = data.obu.length > 0;
+                    var hasInformationCam = data.cam.length > 0;
+
+                    // Check if there is any information
+                    var hasInformationDenm = data.denm.length > 0;
 
                     // Update the last update time
                     var now = new Date();
                     document.getElementById("lastUpdate").innerHTML = "Last update: " + now.toLocaleString();
                     
-                    // Update the message container
-                    var messageContainer = document.getElementById("messageContainer");
-                    messageContainer.innerHTML = ""; // Clear the container before adding new messages
-                    if (hasInformation) {
-                        messageContainer.style.display = "block";
+                    // Update the message container Cam
+                    var messageContainerCam = document.getElementById("messageContainerCam");
+                    messageContainerCam.innerHTML = ""; // Clear the container before adding new messages
+                    if (hasInformationCam) {
+                        messageContainerCam.style.display = "block";
                     } else {
-                        messageContainer.style.display = "none";
+                        messageContainerCam.style.display = "none";
+                    }
+
+                    // Update the message container DENM
+                    var messageContainerDenm = document.getElementById("messageContainerDenm");
+                    messageContainerDenm.innerHTML = ""; // Clear the container before adding new messages
+                    if (hasInformationDenm) {
+                        messageContainerDenm.style.display = "block";
+                    } else {
+                        messageContainerDenm.style.display = "none";
                     }
 
                     // Loop through each OBU and add its message to the container
-                    for (var i = 0; i < data.obu.length; i++) {
-                        var obuMessage = ("Latitude: " + data.obu[i][0] + ", Longitude: " + data.obu[i][1]);
+                    for (var i = 0; i < data.cam.length; i++) {
+                        var camMessage = "OBU " + (i + 1) + " (" + data.cam[i][0] + ", " + data.cam[i][1] + ")";
 
                         // Create a new div element for the OBU message
-                        var obuMessageDiv = document.createElement("div");
-                        obuMessageDiv.textContent = "OBU " + (i+1) + ": " + obuMessage;
+                        var camMessageDiv = document.createElement("div");
+                        camMessageDiv.textContent = camMessage;
 
                         // Append the OBU message div to the container
-                        messageContainer.appendChild(obuMessageDiv);
+                        messageContainerCam.appendChild(camMessageDiv);
                     }
+                    // Loop through each OBU and add its message to the container
+                    for (var i = 0; i < data.denm.length; i++) {
+                        var denmMessage = "DENM sent by id " + (i + 1) + " (" + data.denm[i][0] + ", " + data.denm[i][1] + ")";
+
+                        // Create a new div element for the OBU message
+                        var denmMessageDiv = document.createElement("div");
+                        denmMessageDiv.textContent = denmMessage;
+
+                        // Append the OBU message div to the container
+                        messageContainerDenm.appendChild(denmMessageDiv);
+                    }
+
                 });
             }
             

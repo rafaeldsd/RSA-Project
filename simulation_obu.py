@@ -237,7 +237,7 @@ def obu_process(broker,id):
                     sendCam(client,obu,coords[i])
                     i += 1
             # Emergency vehicle
-            else:
+            if(obu[7] == True):
                 # update the OBU's position
                 conn = sqlite3.connect('obu.db')
                 c = conn.cursor()
