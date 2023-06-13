@@ -30,14 +30,17 @@ def on_message(client, userdata, msg):
     m_decode=str(msg.payload.decode("utf-8","ignore"))
     cam = None
     denm = None
-    # get cam and denm messages
-    if topic == "vanetza/out/cam":
-        cam = json.loads(m_decode)
-    elif topic == "vanetza/out/denm":
-        denm = json.loads(m_decode)
-    else:
-        print("RSU " + str(client._client_id.decode("utf-8")) + " received an unknown message")
-        return
+    spatem = None
+    # get cam, denm and spatem messages
+    match topic:        
+        case "vanetza/out/cam":
+            cam = json.loads(m_decode)
+        case "vanetza/out/denm":
+            denm = json.loads(m_decode)
+        case "vanetza/out/spatem":
+            spatem = json.loads(m_decode)
+        case _:
+            print("RSU " + str(client._client_id.decode("utf-8")) + " received an unknown message")
         
     broker = client._client_id.decode("utf-8")
 
@@ -89,17 +92,23 @@ def on_message(client, userdata, msg):
                         relative_heading = vehicle_heading(cam['latitude'], cam['longitude'], obu[1], obu[2])
                         print("Displaying emergency vehicle information: ")
                         if get_dis_dir(obu[1], obu[2], cam['latitude'], cam['longitude'])[0]<10:
-                            print('\033[91m' + "\t -The emergency response veicle is next to this veícle" + '\033[0m')
+                            print('\033[91m' + "\t -The emergency response vehicle is next to this veícle" + '\033[0m')
                             stop = True
                         elif dif_heading(relative_heading,int(cam['heading'])) < 60:
-                            print('\033[93m' + "\t-There is an emergency response veicle aproaching" + '\033[0m')
+                            print('\033[93m' + "\t-There is an emergency response vehicle aproaching" + '\033[0m')
                             stop = True
                         elif dif_heading(relative_heading,int(cam['heading'])) > 130:
-                            print("\t-The emergency response veicle is heading away")
+                            print("\t-The emergency response vehicle is heading away")
                             stop = False
                         else:
-                            print("\t-The emergency response veicle is not coming on this direction")
+                            print("\t-The emergency response vehicle is not coming on this direction")
                             stop = False
+    if spatem != None:
+        print("OBU " + str(client._client_id.decode("utf-8")) + ": " )
+        if spatem['fields']['spat']['intersections']['states']['signalGroup'] == 1:
+            if spatem['fields']['spat']['intersections']['states']['state-time-speed']['eventState'] == "protected-Movement-Allowed":
+                print("Displaying traffic light maneuver information: ")
+                print("The Traffic Light is green, this vehicle can go trought the next crossroad safely")
 
 
 
@@ -204,6 +213,7 @@ def obu_process(broker,id):
 
     client.subscribe('vanetza/out/denm')  
     client.subscribe('vanetza/out/cam')
+    client.subscribe('vanetza/out/spatem')
     # read the coordinates from the file
     with open('paths/coords'+str(id)+'.json') as json_file:
         coords = json.load(json_file)

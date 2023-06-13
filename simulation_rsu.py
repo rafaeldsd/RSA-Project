@@ -50,14 +50,19 @@ def on_message(client, userdata, msg):
     m_decode = str(msg.payload.decode("utf-8", "ignore"))
     cam = None
     denm = None
-    # get cam and denm messages
-    if topic == "vanetza/out/cam":
-        cam = json.loads(m_decode)
-    elif topic == "vanetza/out/denm":
-        denm = json.loads(m_decode)
-    else:
-        print("RSU " + str(client._client_id.decode("utf-8")) + " received an unknown message")
-        return
+    spatem = None
+
+    # get cam and denm messages    
+    match topic:        
+        case "vanetza/out/cam":
+            cam = json.loads(m_decode)
+        case "vanetza/out/denm":
+            denm = json.loads(m_decode)
+        case "vanetza/out/spatem":
+            spatem = json.loads(m_decode)
+        case _:
+            print("RSU " + str(client._client_id.decode("utf-8")) + " received an unknown message")
+        
     broker = client._client_id.decode("utf-8")
     
     # get the coordinates of this RSU
@@ -83,15 +88,24 @@ def on_message(client, userdata, msg):
                             # if the value is > 95 degrees, it means the ERV has already passed and the protocol comes back to normal
                             if dif_heading(heading,int(cam['heading'])) <= 95:
                                 print ("\n RSU " + str(client._client_id.decode("utf-8")) + " (Traffic light):")
-                                print ('\033[93m' + "\t-The traffic light is turning green for ERV and traffic ahead \n" + '\033[0m')
-                    
+                                print ('\033[93m' + "\t-The traffic light is turning green for ERV and traffic ahead" + '\033[0m')
+                                for i in range(1,4,2):
+                                    signalGroup = i
+                                    eventState = "protected-Movement-Allowed"
+                                    print("\tPublishing SPAT message for signal group ", signalGroup)
+                                    send_spatem(spatem, client, signalGroup, eventState)
+                                for i in range(2,5,2):
+                                    signalGroup = i
+                                    eventState = "stop-And-Remain"
+                                    print("\tPublishing SPAT message for signal group ", signalGroup)
+                                    send_spatem(spatem, client, signalGroup, eventState)
+                                print("\n")
         
         # check if the car is within 200 meters of the RSU and if it is moving (DENM)
         if denm is not None:
             if get_dis_dir(rsu[1], rsu[2], denm['fields']['denm']['management']['eventPosition']['latitude'], denm['fields']['denm']['management']['eventPosition']['longitude'])[0]<200 and denm['fields']['denm']['situation']['informationQuality'] == 7:
                 send_denm(denm,client)
-    
-    
+
     
     if rsu[4] == "ANTENNA_RSU":
         # check if the car is within 50 meters of the RSU and if it is moving (CAM)
@@ -132,6 +146,14 @@ def on_message(client, userdata, msg):
 def send_denm(denm,client):
     denm['fields']['denm']['management']['referenceTime'] = datetime.timestamp(datetime.now())
     client.publish("vanetza/in/denm", json.dumps(denm))
+
+def send_spatem(spatem, client, signalGroup, eventState):
+    f = open("messages/SPATEM.json", "r")
+    spatem = json.load(f)       
+    spatem['fields']['spat']['intersections']['states']['signalGroup'] = signalGroup
+    spatem['fields']['spat']['intersections']['states']['state-time-speed']['eventState'] = eventState
+    client.publish("vanetza/in/spatem", json.dumps(spatem))
+    f.close()
     
 def get_dis_dir(lat1, lon1, lat2, lon2):
     geo = Geodesic.WGS84.Inverse(lat1, lon1, lat2, lon2)
