@@ -1,0 +1,150 @@
+{
+    "fields": {
+        "header": {
+            "messageID": 4,
+            "protocolVersion": 2,
+            "stationID": 158
+        },
+        "spat": {
+            "intersections": [
+                {
+                    "name":"",
+					"id": {
+                        "region":1,
+						"id": 1
+                    },
+                    "revision": 1,
+                    "timeStamp":52517,
+                    "enabledLanes":"",
+                    "moy":52517,
+                    "maneuverAssistList":"",
+                    "states": [
+                        {
+                            "movementName":"",
+							"signalGroup": 1,
+                            "state-time-speed": [
+                                {
+                                    "eventState": "protected-Movement-Allowed",
+                                    "timing": {
+                                        "minEndTime": 28372,
+										"maxEndTime":23863,
+										"likelyTime":23862,
+										"confidence":2,
+										"nextTime":24061
+									},
+									"speeds":[
+										{
+											"type":"greenwave",
+											"speed":138,
+											"distance":30,
+                                            "class":"50"
+										}
+									],
+									"regional":[
+										{
+											"regionId":3,
+											"regExtValue": {
+											    "stateChangeReason":""
+											}
+										}
+									]
+                                    
+                                }
+                            ]
+                        },
+                        {
+                            "movementName":"",
+							"signalGroup": 2,
+                            "state-time-speed": [
+                                {
+                                    "eventState": "protected-Clearance",
+                                    "timing": {
+                                        "minEndTime": 28372,
+										"maxEndTime":23863,
+										"likelyTime":23862,
+										"confidence":2,
+										"nextTime":24061
+									},
+									"speeds":[
+										{
+											"type":"greenwave",
+											"speed":138,
+											"distance":30,
+                                            "class":"50"
+										}
+									],
+									"regional":[
+										{
+											"regionId":3,
+											"regExtValue": {
+											    "stateChangeReason":""
+											}
+										}
+									]
+                                }
+                            ]
+                        },
+                        {
+                            "movementName":"",
+							"signalGroup": 3,
+                            "state-time-speed": [
+                                {
+                                    "eventState": "stop-And-Remain",
+                                    "timing": {
+                                        "minEndTime": 28342,
+										"maxEndTime":23863,
+										"likelyTime":23862,
+										"confidence":2,
+										"nextTime":24061
+									},
+									"speeds":[
+										{
+											"type":"greenwave",
+											"speed":138,
+											"distance":30,
+                                            "class":"50"
+										}
+									],
+									"regional":[
+										{
+											"regionId":3,
+											"regExtValue": {
+											    "stateChangeReason":""
+											}
+										}
+									]
+                                }
+                            ]
+                        }
+                    ],
+                    "regional":1,
+                    "status": {
+                        "failureFlash": false,
+                        "failureMode": false,
+                        "fixedTimeOperation": true,
+                        "manualControlIsEnabled": false,
+                        "noValidMAPisAvailableAtThisTime": false,
+                        "noValidSPATisAvailableAtThisTime": false,
+                        "off": false,
+                        "preemptIsActive": false,
+                        "recentChangeInMAPassignedLanesIDsUsed": false,
+                        "recentMAPmessageUpdate": false,
+                        "signalPriorityIsActive": false,
+                        "standbyOperation": false,
+                        "stopTimeIsActivated": false,
+                        "trafficDependentOperation": false
+                    }
+                }
+            ]
+        }
+    },
+    "newInfo": true,
+    "receiverID": 143,
+    "receiverType": 15,
+    "rssi": -32,
+    "stationID": 158,
+    "test": {
+        "json_timestamp": 1675867693.978001
+    },
+    "timestamp": 1675867693.966406
+}
