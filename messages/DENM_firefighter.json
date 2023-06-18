@@ -4,8 +4,8 @@
             "originatingStationID": 1,
             "sequenceNumber": 0
         },
-        "detectionTime": 1626453837.658,
-        "referenceTime": 1626453837.658,
+        "detectionTime": 1626453837,
+        "referenceTime": 1626453837,
         "eventPosition": {
             "latitude": 0,
             "longitude": 0,

@@ -5,6 +5,7 @@ from coordinates import get_coords
 import sqlite3, math, time
 from db_obu import obu_db_create
 from geographiclib.geodesic import Geodesic
+from simulation_rsu import *
 
 stop = None
 def on_connect(client, userdata, flags, rc):    
@@ -25,16 +26,33 @@ def dif_heading (relative_heading, evr_heading):
         ref_heading=360-ref_heading        
     return ref_heading    
 
+def get_obu_signalGoup (camHeading):
+    street_headdin_one_way, street_headdin_the_other_way = street_headding()
+    if int(camHeading) in range((street_headdin_one_way - 10), (street_headdin_one_way + 10)):
+        signalGroup = 0
+    elif int(camHeading) in range ((street_headdin_the_other_way - 10), (street_headdin_the_other_way + 10)):
+        signalGroup = 2
+    elif int(camHeading) in range((street_headdin_one_way - 80), (street_headdin_one_way -100)):
+        signalGroup = 1
+    elif int(camHeading) in range ((street_headdin_the_other_way - 80), (street_headdin_the_other_way - 100)):
+        signalGroup = 3
+    else:
+        signalGroup = 0
+    return signalGroup
+
 def on_message(client, userdata, msg):  
     topic=msg.topic
     m_decode=str(msg.payload.decode("utf-8","ignore"))
     cam = None
     denm = None
+    spatem = None
     # get cam and denm messages
     if topic == "vanetza/out/cam":
         cam = json.loads(m_decode)
     elif topic == "vanetza/out/denm":
         denm = json.loads(m_decode)
+    elif topic == "vanetza/out/spatem":
+        spatem = json.loads(m_decode)
     else:
         print("RSU " + str(client._client_id.decode("utf-8")) + " received an unknown message")
         return
@@ -47,7 +65,12 @@ def on_message(client, userdata, msg):
     c.execute("SELECT * FROM obu WHERE ip=?", (broker,))
     obu = c.fetchone()
     conn.close()
-    
+
+    if cam != None:
+        signalGroup = get_obu_signalGoup(cam['heading'])
+    else:
+        signalGroup = 0
+
     # check what type of obu is
     # if it is a car and an emergency vehicle without an emergency
     if obu[6] == "CAR" or (obu[6] in ["AMBULANCE", "FIRE", "POLICE"] and obu[7] == False):               
@@ -89,18 +112,22 @@ def on_message(client, userdata, msg):
                         relative_heading = vehicle_heading(cam['latitude'], cam['longitude'], obu[1], obu[2])
                         print("Displaying emergency vehicle information: ")
                         if get_dis_dir(obu[1], obu[2], cam['latitude'], cam['longitude'])[0]<10:
-                            print('\033[91m' + "\t -The emergency response veicle is next to this veícle" + '\033[0m')
+                            print('\033[91m' + "\t -The emergency response vehicle is next to this veícle" + '\033[0m')
                             stop = True
                         elif dif_heading(relative_heading,int(cam['heading'])) < 60:
-                            print('\033[93m' + "\t-There is an emergency response veicle aproaching" + '\033[0m')
+                            print('\033[93m' + "\t-There is an emergency response vehicle approaching" + '\033[0m')
                             stop = True
                         elif dif_heading(relative_heading,int(cam['heading'])) > 130:
-                            print("\t-The emergency response veicle is heading away")
+                            print("\t-The emergency response vehicle is heading away")
                             stop = False
                         else:
-                            print("\t-The emergency response veicle is not coming on this direction")
+                            print("\t-The emergency response vehicle is not coming on this direction")
                             stop = False
-
+    if spatem != None:       
+        if spatem['fields']['spat']['intersections'][0]['states'][0]['state-time-speed'][0]['eventState'] == 6:
+            print("OBU " + str(client._client_id.decode("utf-8")) + ": " )        
+            print("\t-Detected a SPATEM: signalGroup(" + str(spatem['fields']['spat']['intersections'][0]['states'][signalGroup]['signalGroup']) + ") - Displaying traffic light maneuver information: ")
+            print('\033[92m' + "\tThe Traffic Light is green, this vehicle can go trought the next crossroad safely\n" + '\033[0m')
 
 
 def sendCam(client,obu,next_coord):
@@ -204,6 +231,7 @@ def obu_process(broker,id):
 
     client.subscribe('vanetza/out/denm')  
     client.subscribe('vanetza/out/cam')
+    client.subscribe('vanetza/out/spatem')
     # read the coordinates from the file
     with open('paths/coords'+str(id)+'.json') as json_file:
         coords = json.load(json_file)

@@ -39,10 +39,10 @@ def dif_heading (relative_heading, evr_heading):
 
 def street_headding ():
     street_headdin_one_way=vehicle_heading(40.634408, -8.656322, 40.630573, -8.654166)
-    if street_headdin_one_way>180:
-        street_headdin_the_other_way=street_headdin_one_way-180
+    if street_headdin_one_way > 180:
+        street_headdin_the_other_way=street_headdin_one_way - 180
     else:
-         street_headdin_the_other_way=street_headdin_one_way+180
+         street_headdin_the_other_way=street_headdin_one_way + 180
     return street_headdin_one_way, street_headdin_the_other_way
 
 def on_message(client, userdata, msg):
@@ -54,7 +54,7 @@ def on_message(client, userdata, msg):
     if topic == "vanetza/out/cam":
         cam = json.loads(m_decode)
     elif topic == "vanetza/out/denm":
-        denm = json.loads(m_decode)
+        denm = json.loads(m_decode)    
     else:
         print("RSU " + str(client._client_id.decode("utf-8")) + " received an unknown message")
         return
@@ -84,7 +84,15 @@ def on_message(client, userdata, msg):
                             if dif_heading(heading,int(cam['heading'])) <= 95:
                                 print ("\n RSU " + str(client._client_id.decode("utf-8")) + " (Traffic light):")
                                 print ('\033[93m' + "\t-The traffic light is turning green for ERV and traffic ahead \n" + '\033[0m')
-                    
+                                for i in range(1,4,2):
+                                    signalGroup = i
+                                    eventState = 6                                    
+                                    sendSpatem(client, signalGroup, eventState)
+                                for i in range(2,5,2):
+                                    signalGroup = i
+                                    eventState = 3                                    
+                                    sendSpatem(client, signalGroup, eventState)
+                                print("\n")
         
         # check if the car is within 200 meters of the RSU and if it is moving (DENM)
         if denm is not None:
@@ -130,8 +138,16 @@ def on_message(client, userdata, msg):
 
             
 def send_denm(denm,client):
-    denm['fields']['denm']['management']['referenceTime'] = datetime.timestamp(datetime.now())
+    denm['fields']['denm']['management']['referenceTime'] = int(datetime.timestamp(datetime.now()))
     client.publish("vanetza/in/denm", json.dumps(denm))
+
+def sendSpatem(client, signalGroup, eventState):
+    print("\tPublishing SPAT message for signal group ", signalGroup)
+    f = open("messages/SPATEM.json", "r")
+    spatem = json.load(f)
+    spatem['intersections'][0]['states'][signalGroup-1]['state-time-speed'][0]['eventState'] = eventState
+    client.publish("vanetza/in/spatem", json.dumps(spatem))
+    f.close()
     
 def get_dis_dir(lat1, lon1, lat2, lon2):
     geo = Geodesic.WGS84.Inverse(lat1, lon1, lat2, lon2)
