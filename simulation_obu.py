@@ -8,6 +8,8 @@ from geographiclib.geodesic import Geodesic
 from simulation_rsu import *
 
 stop = None
+signalGroup = 0
+
 def on_connect(client, userdata, flags, rc):    
     if rc==0:
         print("OBU "+ str(client._client_id.decode("utf-8")) +": Connected OK")
@@ -46,6 +48,9 @@ def on_message(client, userdata, msg):
     cam = None
     denm = None
     spatem = None
+    global camLat    
+    global camLong
+    global camHeading
     # get cam and denm messages
     if topic == "vanetza/out/cam":
         cam = json.loads(m_decode)
@@ -66,11 +71,13 @@ def on_message(client, userdata, msg):
     obu = c.fetchone()
     conn.close()
 
-    if cam != None:
-        signalGroup = get_obu_signalGoup(cam['heading'])
-    else:
-        signalGroup = 0
-
+    if cam != None:    
+        camHeading = cam['heading']
+        global signalGroup
+        signalGroup = get_obu_signalGoup(camHeading)
+        camLat = cam['latitude']
+        camLong = cam['longitude']
+    
     # check what type of obu is
     # if it is a car and an emergency vehicle without an emergency
     if obu[6] == "CAR" or (obu[6] in ["AMBULANCE", "FIRE", "POLICE"] and obu[7] == False):               
@@ -112,7 +119,7 @@ def on_message(client, userdata, msg):
                         relative_heading = vehicle_heading(cam['latitude'], cam['longitude'], obu[1], obu[2])
                         print("Displaying emergency vehicle information: ")
                         if get_dis_dir(obu[1], obu[2], cam['latitude'], cam['longitude'])[0]<10:
-                            print('\033[91m' + "\t -The emergency response vehicle is next to this veícle" + '\033[0m')
+                            print('\033[91m' + "\t -The emergency response vehicle is next to this vehicle" + '\033[0m')
                             stop = True
                         elif dif_heading(relative_heading,int(cam['heading'])) < 60:
                             print('\033[93m' + "\t-There is an emergency response vehicle approaching" + '\033[0m')
@@ -123,12 +130,20 @@ def on_message(client, userdata, msg):
                         else:
                             print("\t-The emergency response vehicle is not coming on this direction")
                             stop = False
-    if spatem != None:       
-        if spatem['fields']['spat']['intersections'][0]['states'][0]['state-time-speed'][0]['eventState'] == 6:
-            print("OBU " + str(client._client_id.decode("utf-8")) + ": " )        
-            print("\t-Detected a SPATEM: signalGroup(" + str(spatem['fields']['spat']['intersections'][0]['states'][signalGroup]['signalGroup']) + ") - Displaying traffic light maneuver information: ")
-            print('\033[92m' + "\tThe Traffic Light is green, this vehicle can go trought the next crossroad safely\n" + '\033[0m')
-
+    if spatem != None:
+        if get_dis_dir(40.633237, -8.655665, camLat, camLong) [0] < 250:
+            street_headdin_one_way, street_headdin_the_other_way = street_headding()
+            # verify if ERV is on the street headding with 10 degree tolerance eather way 
+            if int(camHeading) in range((street_headdin_one_way - 10), (street_headdin_one_way + 10)) or int(camHeading) in range ((street_headdin_the_other_way - 10), (street_headdin_the_other_way + 10)):
+                heading = vehicle_heading(camLat, camLong, 40.633237, -8.655665)
+                # compare the headding of the ERV in relation to the traffic light.
+                # if the value is > 95 degrees, it means the ERV has already passed and the protocol comes back to normal
+                if dif_heading(heading,int(camHeading)) <= 95:
+                    if spatem['fields']['spat']['intersections'][0]['states'][0]['state-time-speed'][0]['eventState'] == 6:
+                        print("OBU " + str(client._client_id.decode("utf-8")) + ": " )        
+                        print("\t-Detected a SPATEM: signalGroup(" + str(spatem['fields']['spat']['intersections'][0]['states'][signalGroup]['signalGroup']) + ") - Displaying traffic light maneuver information: ")
+                        print('\033[92m' + "\tThe Traffic Light is green, this vehicle can go trought the next crossroad safely\n" + '\033[0m')
+                        #f.close()
 
 def sendCam(client,obu,next_coord):
     if obu[6] == "AMBULANCE" or obu[6] == "FIRE" or obu[6] == "POLICE":
@@ -144,7 +159,6 @@ def sendCam(client,obu,next_coord):
         cam['specialVehicle']['emergencyContainer']["lightBarSirenInUse"]["lightBarActivated"] = True
         cam['specialVehicle']['emergencyContainer']["lightBarSirenInUse"]["sirenActivated"] = True
     client.publish("vanetza/in/cam", json.dumps(cam))
-    # print("Client " + client._client_id.decode("utf-8") + " published a CAM message")
     f.close()  
         
 def sendDenm(client,obu,next_coord):

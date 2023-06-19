@@ -136,7 +136,7 @@ def on_message(client, userdata, msg):
                     print("and unknown causeCode(" + str(denm['fields']['denm']['situation']['eventType']['causeCode']) + ")")
                 send_denm(denm,client)
 
-            
+
 def send_denm(denm,client):
     denm['fields']['denm']['management']['referenceTime'] = int(datetime.timestamp(datetime.now()))
     client.publish("vanetza/in/denm", json.dumps(denm))
@@ -146,7 +146,7 @@ def sendSpatem(client, signalGroup, eventState):
     f = open("messages/SPATEM.json", "r")
     spatem = json.load(f)
     spatem['intersections'][0]['states'][signalGroup-1]['state-time-speed'][0]['eventState'] = eventState
-    client.publish("vanetza/in/spatem", json.dumps(spatem))
+    client.publish("vanetza/in/spatem", json.dumps(spatem))    
     f.close()
     
 def get_dis_dir(lat1, lon1, lat2, lon2):
